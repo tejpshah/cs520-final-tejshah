@@ -1,8 +1,11 @@
 import numpy as np 
+import matplotlib.pyplot as plt 
 
 def init_nuclear_reactor_config(path = "reactors/Thor23-SA74-VERW-Schematic (Classified).txt"):
     """
-    @param path (str) : the file path of the nuclear reactor configuration
+    generates a 2D numpy matrix that represents the relevant configuration of a nuclear reactor. 
+
+    @param path : the file path of the nuclear reactor configuration
     @returns reactor : 2D numpy matrix with the configuration of the reactor {"_" -> 0, "X" -> 1}
     """
 
@@ -22,9 +25,29 @@ def init_nuclear_reactor_config(path = "reactors/Thor23-SA74-VERW-Schematic (Cla
     # return a 2D numpy array of the nuclear reactor configuration
     return reactor 
 
+def visualize_nuclear_reactor(reactor):
+    """
+    generates a visualization of the nuclear reactor configuration. 0 -> white, 1 -> black
 
+    @param reactor : represents the configuration of the nuclear reactor
+    """
 
+    # set the colormap and color limits 
+    cmap = plt.get_cmap("binary")
+    plt.imshow(reactor, cmap=cmap)
 
+    # removes the tick marks and labels
+    plt.gca().tick_params(which="both", length=0)
+    plt.gca().set_xticklabels([])
+    plt.gca().set_yticklabels([])
+
+    # sets the tick labels at center of each cell to be the values in each cell
+    for i in range(reactor.shape[0]):
+        for j in range(reactor.shape[1]):
+            plt.text(j, i, reactor[i,j], ha="center", va="center", color="white" if reactor[i,j] == 0 else "black")
+
+    # visualizes the nuclear reactor
+    plt.show()
 
 nnps = init_nuclear_reactor_config()
-print(nnps)
+visualize_nuclear_reactor(nnps)
