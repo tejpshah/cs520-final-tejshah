@@ -25,16 +25,38 @@ def init_nuclear_reactor_config(path = "reactors/Thor23-SA74-VERW-Schematic (Cla
     # return a 2D numpy array of the nuclear reactor configuration
     return reactor 
 
-def visualize_nuclear_reactor(reactor):
+def init_transition_matrix(reactor):
     """
-    generates a visualization of the nuclear reactor configuration. 0 -> white, 1 -> black
+    generates initial transition matrix for where the drone can be as 1 / [# of white cells (aka reactor with 0)] in each location of matrix
 
+    @param reactor : represents the configuration of the nuclear reactor {0->unblocked cell, 1 ->blocked cell}
+    @returns transition_matrix : represents the probability of drone being at cell (i,j). 
+    """
+
+    # count the number of white cells in the nuclear reactor
+    num_white_cells = (reactor == 0).sum()
+
+    print(f"The number of white cells are {num_white_cells}")
+
+    # initial probability matrix of same shape as reactor with all being equally likely
+    transition_matrix = np.ones(reactor.shape) * (1 / num_white_cells)
+
+    # set the probability of black cells in reactor to 0
+    transition_matrix[reactor == 1] = 0 
+
+    # return the probability matrix
+    return transition_matrix 
+
+def visualize_nuclear_reactor(reactor, transition_matrix):
+    """
+    generates a visualization of the nuclear reactor configuration along with probs of being at a cell. 0 -> white, 1 -> black
     @param reactor : represents the configuration of the nuclear reactor
     """
-
     # set the colormap and color limits 
-    cmap = plt.get_cmap("binary")
-    plt.imshow(reactor, cmap=cmap)
+    plt.imshow(transition_matrix, cmap='magma', vmin=transition_matrix.min(), vmax=transition_matrix.max())
+
+    # show the color bar
+    plt.colorbar()
 
     # removes the tick marks and labels
     plt.gca().tick_params(which="both", length=0)
@@ -44,10 +66,17 @@ def visualize_nuclear_reactor(reactor):
     # sets the tick labels at center of each cell to be the values in each cell
     for i in range(reactor.shape[0]):
         for j in range(reactor.shape[1]):
-            plt.text(j, i, reactor[i,j], ha="center", va="center", color="white" if reactor[i,j] == 0 else "black")
+            if reactor[i,j] != 1:
+                plt.text(j, i, round(transition_matrix[i,j], 3), ha="center", va="center", color="blue", fontsize=6)
 
     # visualizes the nuclear reactor
     plt.show()
 
-nnps = init_nuclear_reactor_config()
-visualize_nuclear_reactor(nnps)
+if __name__ == "__main__":
+
+    # initialize nuclear reactor and transition matrix
+    reactor = init_nuclear_reactor_config()
+    transitions = init_transition_matrix(reactor)
+
+    # generate heatmap of probability transition matrix
+    visualize_nuclear_reactor(reactor, transitions)
