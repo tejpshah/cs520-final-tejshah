@@ -21,7 +21,51 @@ class Agent():
         self.invalid_moves = self.init_invalid_actions()
 
         # this runs the debug command
-        self.debug()
+        # self.debug()
+
+    # "INTELLIGENT" LOGIC TO MOVE THE AGENT WITH RESPECT TO THE CORRECT SEQUENCE
+    
+    def move_intelligently(self):
+        """
+        our goal is to move the probability mass to a single point with 100% probability.
+        """
+        pass 
+
+    def move_deterministically(self, deactivating_path="sequences/sequence-toyexample2.txt"):
+        """
+        runs the AI agent towards a specified sequence of commands. 
+        """
+
+        # loads in a sequence of actions to localize the robot 
+        self.deactivating_path = deactivating_path
+        command_sequence = self.load_deactivating_sequence()
+
+        print(command_sequence)
+
+        # runs a sequence of commands 
+        for command in command_sequence:
+
+            print(f"MOVING {command}!")
+
+            # update probabilities according to command 
+            if command == "L": 
+                self.probabilities = self.move_left()
+            elif command == "R": 
+                self.probabilities = self.move_right()
+            elif command == "U": 
+                self.probabilities = self.move_up()
+            elif command == "D": 
+                self.probabilities = self.move_down()
+
+            # visualize and 2D and 3D probability plots
+            self.visualize_nuclear_reactor()
+            self.visualize_nuclear_reactor_3d()
+        
+    def get_std(self, pmatrix):
+        """
+        returns the sample standard deviation of a matrix to determine which location to move to
+        """
+        return np.std(pmatrix, axis=None, ddof=1) 
 
     # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
 
@@ -139,7 +183,7 @@ class Agent():
         """ 
         return 1.0 in self.probabilities
 
-    # DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE
+    # DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE AND OTHER UTILITIES
 
     def visualize_nuclear_reactor(self):
         """
@@ -169,8 +213,6 @@ class Agent():
         """
         generates a 3D visualization of the nuclear reactor configuration with probs as the height above the surface.
         """
-        # import required modules
-        from mpl_toolkits.mplot3d import Axes3D
 
         # create a figure and 3D Axes
         fig = plt.figure()
@@ -184,6 +226,24 @@ class Agent():
 
         # show the plot
         plt.show()
+
+    def load_deactivating_sequence(self):
+        """
+        this will load into an array the sequence of commands. 
+        """
+        # initialize the command sequence
+        command_sequence = list()
+
+        # opens the command sequence
+        with open(self.deactivating_path, 'r') as file:
+            commands = file.read()
+
+        # iterate through the contents of the file and append each character to the array
+        for move in commands:
+            command_sequence.append(move)
+        
+        # returns the list of commands in the command sequence
+        return [command for command in command_sequence if command != ","]
 
     def debug(self):
         """
@@ -206,7 +266,7 @@ class Agent():
         self.visualize_nuclear_reactor()
         self.visualize_nuclear_reactor_3d()
 
-
 if __name__ == "__main__":
     agent = Agent(path="reactors/toyexample2.txt") 
+    agent.move_deterministically(deactivating_path="sequences/sequence-toyexample2.txt")
     # agent = Agent()
