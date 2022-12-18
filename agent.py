@@ -1,3 +1,4 @@
+import random 
 import numpy as np 
 import matplotlib.pyplot as plt 
 
@@ -29,8 +30,52 @@ class Agent():
         """
         our goal is to move the probability mass to a single point with 100% probability.
         """
-        pass 
+        print(f"\nTHE CURRENT PROBABILITY MATRIX IS: {self.probabilities}")
 
+        # forward lookahead to the probability matrix after taking one action 
+        p_d, p_u, p_l, p_r = self.move_down(), self.move_up(), self.move_left(), self.move_right()
+
+        # compute a metric that "scores" the utility of the probability metric
+        s_d, s_u, s_l, s_r = self.get_std(p_d), self.get_std(p_u), self.get_std(p_l), self.get_std(p_r)
+
+        print(f"\ns_d = {s_d} and p_d =")
+        print(f"{p_d}")
+        print(f"\ns_u = {s_u} and p_u =")
+        print(f"{p_u}")
+        print(f"\ns_l = {s_l} and p_l =")
+        print(f"{p_l}")
+        print(f"\ns_r = {s_r} and p_r =")
+        print(f"{p_r}")
+
+        # create a dictionary hashmap mapping the utilities to particular actions
+        utilities = {s_d : "D", s_u : "U", s_r : "R", s_l : "L"}
+
+        # greedily select the next action that optimizes the objective function
+        max_utility = max(utilities.keys())
+
+        # find all possible actions that can be taken to maximize objective
+        possible_actions = [utilities[utility] for utility in utilities.keys() if utility == max_utility]
+
+        # randomly select a possible actionto avoid getting stuck in local minima
+        action = random.choice(possible_actions)
+
+        # add the action selected to the trajectory 
+        self.actions.append(action)
+
+        # select an action to take for the probabilities 
+        if action == "D": 
+            self.probabilities = p_d 
+        elif action == "U":
+            self.probabilities = p_u 
+        elif action == "L":
+            self.probabilities = p_l 
+        elif action == "R":
+            self.probabilities = p_r 
+
+        # visualize and 2D and 3D probability plots
+        self.visualize_nuclear_reactor()
+        self.visualize_nuclear_reactor_3d()
+        
     def move_deterministically(self, deactivating_path="sequences/sequence-toyexample2.txt"):
         """
         runs the AI agent towards a specified sequence of commands. 
@@ -279,6 +324,12 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample2.txt") 
-    agent.move_deterministically(deactivating_path="sequences/sequence-toyexample2.txt")
+    agent = Agent(path="reactors/toyexample.txt")
+    while not agent.is_terminal_state():
+        agent.move_intelligently()
+    print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
+
+
+    #agent = Agent() 
+    # agent.move_deterministically(deactivating_path="sequences/sequence-toyexample2.txt")
     # agent = Agent()
