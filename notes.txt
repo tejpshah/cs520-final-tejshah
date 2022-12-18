@@ -1,0 +1,3 @@
+Strategy #1
+- Uniform distribution of probabilities over all non-blocked cells
+- Agent selects actions in priority of (1) minimal number of clumps and (2) minimal 

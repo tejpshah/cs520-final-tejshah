@@ -467,10 +467,11 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample.txt")
+    agent = Agent(path="reactors/toyexample3.txt")
+    # agent = Agent()
     while not agent.is_terminal_state():
         print(len(agent.actions))
-        agent.move_intelligently()
+        agent.move_intelligently_debug()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
 
