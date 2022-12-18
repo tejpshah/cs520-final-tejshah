@@ -19,8 +19,10 @@ class Agent():
         # this initializes the set of invalid moves for a configuration
         self.invalid_moves = self.init_invalid_actions()
 
-        # this will generate a visualization of the initial state of the board
-        self.visualize_nuclear_reactor()
+        # this runs the debug command
+        self.debug()
+
+# INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIOSN
 
     def init_nuclear_reactor_config(self):
         """
@@ -68,13 +70,8 @@ class Agent():
         if the move is invalid, then the agent must keep the current location and "not" move in specified direction.
         @return invalid_moves : dictionary of tuple coordinates (i,j) that are invalid moves for the agent. 
         """
-
-        # initializes the set of invalid actions
-        invalid_moves = set()
-
         # add all invalid moves that correspond to blocked cells in the grid
-        blocked_cells = {(index[0], index[1]) for index in np.argwhere(self.reactor == 1)}
-        invalid_moves.add(blocked_cells)
+        invalid_moves = {(index[0], index[1]) for index in np.argwhere(self.reactor == 1)}
 
         # add all invalid moves that are out of bounds 
         for i in range(-1, self.reactor.shape[0] + 1):
@@ -85,10 +82,15 @@ class Agent():
         # return the invalid moves set
         return invalid_moves
 
+# FUNCTIONALITY TO ENABLE THE AGENT TO MOVE AND UPDATE PROBABILITIES BASED ON ACTION TAKEN
+
+
+
+# DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE
+
     def visualize_nuclear_reactor(self):
         """
         generates a visualization of the nuclear reactor configuration along with probs of being at a cell. 0 -> white, 1 -> black
-        
         @param reactor : represents the configuration of the nuclear reactor
         """
         # set the colormap and color limits 
@@ -111,8 +113,18 @@ class Agent():
         # visualizes the nuclear reactor
         plt.show()
 
+    def debug(self):
+        """
+        prints out to terminal the probabilities, nuclear reactor, and other debugging information.
+        """
+        
+        print(f"\nTHE REACTOR IS:")
+        print(self.reactor)
 
-
+        print(f"\nTHE PROBABITIES ARE:")
+        print(self.probabilities)
+        
+        self.visualize_nuclear_reactor()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample.txt") 
+    agent = Agent() 
