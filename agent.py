@@ -83,7 +83,7 @@ class Agent():
         return invalid_moves
 
 # FUNCTIONALITY TO ENABLE THE AGENT TO MOVE AND UPDATE PROBABILITIES BASED ON ACTION TAKEN
-    
+
     def move_down(self):
         """
         this updates the probabilities matrix if the agent moves down. (i,j) -> (i+1,j)
@@ -95,6 +95,42 @@ class Agent():
                     p_down[i+1, j] += self.probabilities[i,j]
                 else: p_down[i, j] += self.probabilities[i,j]
         return p_down 
+
+    def move_up(self):
+        """
+        this updates the probabilities matrix if the agent moves down. (i,j) -> (i-1,j)
+        """
+        p_up = np.zeros(self.probabilities.shape)
+        for i in range(0, self.reactor.shape[0]):
+            for j in range(0, self.reactor.shape[1]):
+                if (i-1, j) not in self.invalid_moves:
+                    p_up[i-1, j] += self.probabilities[i,j]
+                else: p_up[i, j] += self.probabilities[i,j]
+        return p_up 
+    
+    def move_left(self):
+        """
+        this updates the probabilities matrix if the agent moves down. (i,j) -> (i,j-1)
+        """
+        p_left = np.zeros(self.probabilities.shape)
+        for i in range(0, self.reactor.shape[0]):
+            for j in range(0, self.reactor.shape[1]):
+                if (i, j-1) not in self.invalid_moves:
+                    p_left[i, j-1] += self.probabilities[i,j]
+                else: p_left[i, j] += self.probabilities[i,j]
+        return p_left 
+    
+    def move_right(self):
+        """
+        this updates the probabilities matrix if the agent moves down. (i,j) -> (i,j+1)
+        """
+        p_left = np.zeros(self.probabilities.shape)
+        for i in range(0, self.reactor.shape[0]):
+            for j in range(0, self.reactor.shape[1]):
+                if (i, j+1) not in self.invalid_moves:
+                    p_left[i, j+1] += self.probabilities[i,j]
+                else: p_left[i, j] += self.probabilities[i,j]
+        return p_left 
 
 # DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE
 
@@ -136,12 +172,12 @@ class Agent():
 
         self.visualize_nuclear_reactor()
 
-        print(f"\nMOVE DOWN, PROBABILITIES NOW:")
-        self.probabilities = self.move_down()
+        print(f"\nMOVE PROBABILITIES NOW:")
+        self.probabilities = self.move_right()
         print(self.probabilities)
 
         self.visualize_nuclear_reactor()
 
-if __name__ == "__main__":
-    #agent = Agent(path="reactors/toyexample.txt") 
-    agent = Agent()
+if __namse__ == "__main__":
+    agent = Agent(path="reactors/toyexample2.txt") 
+    #agent = Agent()
