@@ -7,11 +7,17 @@ class Agent():
         # this stores the path of the nuclear reactor 
         self.path = path
 
+        # this stores the sequence of actions taken by the agent
+        self.actions = list() 
+
         # this represents the nuclear reactor as a 2D matrix
         self.reactor = self.init_nuclear_reactor_config()
 
         # this represents probability of being at a cell as a matrix
         self.probabilities = self.init_probability_matrix()
+
+        # this initializes the set of invalid moves for a configuration
+        self.invalid_moves = self.init_invalid_actions()
 
         # this will generate a visualization of the initial state of the board
         self.visualize_nuclear_reactor()
@@ -19,11 +25,8 @@ class Agent():
     def init_nuclear_reactor_config(self):
         """
         generates a 2D numpy matrix that represents the relevant configuration of a nuclear reactor. 
-
-        @param path : the file path of the nuclear reactor configuration
         @returns reactor : 2D numpy matrix with the configuration of the reactor {"_" -> 0, "X" -> 1}
         """
-
         # reads in the file as a list of strings
         with open(self.path, "r") as f:
             lines = f.readlines() 
@@ -43,11 +46,8 @@ class Agent():
     def init_probability_matrix(self):
         """
         generates initial transition matrix for where the drone can be as 1 / [# of white cells (aka reactor with 0)] in each location of matrix
-
-        @param reactor : represents the configuration of the nuclear reactor {0->unblocked cell, 1 ->blocked cell}
-        @returns transition_matrix : represents the probability of drone being at cell (i,j). 
+        @returns probabilities : represents the probability of drone being at cell (i,j). 
         """
-
         # count the number of white cells in the nuclear reactor
         num_white_cells = (self.reactor == 0).sum()
 
@@ -62,6 +62,29 @@ class Agent():
         # return the probability matrix
         return probabilities 
     
+    def init_invalid_actions(self):
+        """
+        whenever an agent moves from a cell to another cell we have to check whether the move is invalid.
+        if the move is invalid, then the agent must keep the current location and "not" move in specified direction.
+        @return invalid_moves : dictionary of tuple coordinates (i,j) that are invalid moves for the agent. 
+        """
+
+        # initializes the set of invalid actions
+        invalid_moves = set()
+
+        # add all invalid moves that correspond to blocked cells in the grid
+        blocked_cells = {(index[0], index[1]) for index in np.argwhere(self.reactor == 1)}
+        invalid_moves.add(blocked_cells)
+
+        # add all invalid moves that are out of bounds 
+        for i in range(-1, self.reactor.shape[0] + 1):
+            for j in range(-1, self.reactor.shape[1] + 1):
+                if i < 0 or j < 0 or i > (self.reactor.shape[0]-1) or j > (self.reactor.shape[1]-1):
+                    invalid_moves.add((i,j))
+        
+        # return the invalid moves set
+        return invalid_moves
+
     def visualize_nuclear_reactor(self):
         """
         generates a visualization of the nuclear reactor configuration along with probs of being at a cell. 0 -> white, 1 -> black
@@ -87,6 +110,9 @@ class Agent():
 
         # visualizes the nuclear reactor
         plt.show()
+
+
+
 
 if __name__ == "__main__":
     agent = Agent(path="reactors/toyexample.txt") 
