@@ -368,7 +368,11 @@ class Agent():
         """
         ends the game if 1.0 is in any of the probabilities (i.e. we are 100% confident on localizing the drone)
         """ 
-        return 1.0 in self.probabilities
+        for i in range(0, self.probabilities.shape[0]):
+            for j in range(0, self.probabilities.shape[1]):
+                if self.probabilities[i,j] > 0.999: 
+                    return True 
+        return False 
 
     def get_localized_robot_location(self):
         """
@@ -463,10 +467,10 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample2.txt")
-    # agent = Agent()
+    agent = Agent(path="reactors/toyexample.txt")
     while not agent.is_terminal_state():
-        agent.move_intelligently_debug()
+        print(len(agent.actions))
+        agent.move_intelligently()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
 
