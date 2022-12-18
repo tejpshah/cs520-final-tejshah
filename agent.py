@@ -61,6 +61,9 @@ class Agent():
             self.visualize_nuclear_reactor()
             self.visualize_nuclear_reactor_3d()
         
+        # print out the location of localized coordinate
+        self.get_localized_robot_location()
+        
     def get_std(self, pmatrix):
         """
         returns the sample standard deviation of a matrix to determine which location to move to
@@ -182,6 +185,15 @@ class Agent():
         ends the game if 1.0 is in any of the probabilities (i.e. we are 100% confident on localizing the drone)
         """ 
         return 1.0 in self.probabilities
+
+    def get_localized_robot_location(self):
+        """
+        find the cell where there is a 100% probability of containing the robot. 
+        """
+        indices = np.where(self.probabilities == 1.0)
+        coordinate = (indices[0].item(), indices[1].item())
+        print(f"THE ROBOT IS 100% LOCALIZED TO BE AT {coordinate}")
+        return coordinate 
 
     # DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE AND OTHER UTILITIES
 
