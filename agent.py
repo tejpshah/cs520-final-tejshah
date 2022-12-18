@@ -133,12 +133,17 @@ class Agent():
                 else: p_left[i, j] += self.probabilities[i,j]
         return p_left 
 
+    def is_terminal_state(self):
+        """
+        ends the game if 1.0 is in any of the probabilities (i.e. we are 100% confident on localizing the drone)
+        """ 
+        return 1.0 in self.probabilities
+
     # DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE
 
     def visualize_nuclear_reactor(self):
         """
         generates a visualization of the nuclear reactor configuration along with probs of being at a cell. 0 -> white, 1 -> black
-        @param reactor : represents the configuration of the nuclear reactor
         """
         # set the colormap and color limits 
         plt.imshow(self.probabilities, cmap='magma', vmin=self.probabilities.min(), vmax=self.probabilities.max())
@@ -160,6 +165,26 @@ class Agent():
         # visualizes the nuclear reactor
         plt.show()
 
+    def visualize_nuclear_reactor_3d(self):
+        """
+        generates a 3D visualization of the nuclear reactor configuration with probs as the height above the surface.
+        """
+        # import required modules
+        from mpl_toolkits.mplot3d import Axes3D
+
+        # create a figure and 3D Axes
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        # create a 2D array of x and y values for the 3D plot
+        x, y = np.meshgrid(range(self.reactor.shape[1]), range(self.reactor.shape[0]))
+
+        # plot the surface using the probabilities as the z values
+        ax.plot_surface(x, y, self.probabilities, cmap='magma',  vmin=self.probabilities.min(), vmax=self.probabilities.max())
+
+        # show the plot
+        plt.show()
+
     def debug(self):
         """
         prints out to terminal the probabilities, nuclear reactor, and other debugging information.
@@ -172,13 +197,16 @@ class Agent():
         print(self.probabilities)
 
         self.visualize_nuclear_reactor()
+        self.visualize_nuclear_reactor_3d()
 
         print(f"\nMOVE PROBABILITIES NOW:")
         self.probabilities = self.move_down()
         print(self.probabilities)
 
         self.visualize_nuclear_reactor()
+        self.visualize_nuclear_reactor_3d()
+
 
 if __name__ == "__main__":
     agent = Agent(path="reactors/toyexample2.txt") 
-    #agent = Agent()
+    # agent = Agent()
