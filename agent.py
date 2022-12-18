@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 
 class Agent():
+
     def __init__(self, path ="reactors/Thor23-SA74-VERW-Schematic (Classified).txt"):
 
         # this stores the path of the nuclear reactor 
@@ -22,7 +23,7 @@ class Agent():
         # this runs the debug command
         self.debug()
 
-# INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
+    # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
 
     def init_nuclear_reactor_config(self):
         """
@@ -82,7 +83,7 @@ class Agent():
         # return the invalid moves set
         return invalid_moves
 
-# FUNCTIONALITY TO ENABLE THE AGENT TO MOVE AND UPDATE PROBABILITIES BASED ON ACTION TAKEN
+    # FUNCTIONALITY TO ENABLE THE AGENT TO MOVE AND UPDATE PROBABILITIES BASED ON ACTION TAKEN
 
     def move_down(self):
         """
@@ -132,7 +133,7 @@ class Agent():
                 else: p_left[i, j] += self.probabilities[i,j]
         return p_left 
 
-# DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE
+    # DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE
 
     def visualize_nuclear_reactor(self):
         """
@@ -173,11 +174,11 @@ class Agent():
         self.visualize_nuclear_reactor()
 
         print(f"\nMOVE PROBABILITIES NOW:")
-        self.probabilities = self.move_right()
+        self.probabilities = self.move_down()
         print(self.probabilities)
 
         self.visualize_nuclear_reactor()
 
-if __namse__ == "__main__":
+if __name__ == "__main__":
     agent = Agent(path="reactors/toyexample2.txt") 
     #agent = Agent()
