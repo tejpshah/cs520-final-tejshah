@@ -25,7 +25,7 @@ def init_nuclear_reactor_config(path = "reactors/Thor23-SA74-VERW-Schematic (Cla
     # return a 2D numpy array of the nuclear reactor configuration
     return reactor 
 
-def init_transition_matrix(reactor):
+def init_probability_matrix(reactor):
     """
     generates initial transition matrix for where the drone can be as 1 / [# of white cells (aka reactor with 0)] in each location of matrix
 
@@ -47,13 +47,14 @@ def init_transition_matrix(reactor):
     # return the probability matrix
     return transition_matrix 
 
-def visualize_nuclear_reactor(reactor, transition_matrix):
+def visualize_nuclear_reactor(reactor, probabilities):
     """
     generates a visualization of the nuclear reactor configuration along with probs of being at a cell. 0 -> white, 1 -> black
+    
     @param reactor : represents the configuration of the nuclear reactor
     """
     # set the colormap and color limits 
-    plt.imshow(transition_matrix, cmap='magma', vmin=transition_matrix.min(), vmax=transition_matrix.max())
+    plt.imshow(probabilities, cmap='magma', vmin=probabilities.min(), vmax=probabilities.max())
 
     # show the color bar
     plt.colorbar()
@@ -67,16 +68,20 @@ def visualize_nuclear_reactor(reactor, transition_matrix):
     for i in range(reactor.shape[0]):
         for j in range(reactor.shape[1]):
             if reactor[i,j] != 1:
-                plt.text(j, i, round(transition_matrix[i,j], 3), ha="center", va="center", color="blue", fontsize=6)
+                plt.text(j, i, round(probabilities[i,j], 3), ha="center", va="center", color="blue", fontsize=6)
 
     # visualizes the nuclear reactor
     plt.show()
 
+def move_down(reactor, probabilities):
+    
+
+
 if __name__ == "__main__":
 
     # initialize nuclear reactor and transition matrix
-    reactor = init_nuclear_reactor_config()
-    transitions = init_transition_matrix(reactor)
+    reactor = init_nuclear_reactor_config(path="reactors/toy.txt")
+    probabilities = init_probability_matrix(reactor)
 
     # generate heatmap of probability transition matrix
-    visualize_nuclear_reactor(reactor, transitions)
+    visualize_nuclear_reactor(reactor, probabilities)
