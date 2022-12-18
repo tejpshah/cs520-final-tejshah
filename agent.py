@@ -22,7 +22,7 @@ class Agent():
         # this runs the debug command
         self.debug()
 
-# INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIOSN
+# INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
 
     def init_nuclear_reactor_config(self):
         """
@@ -83,8 +83,18 @@ class Agent():
         return invalid_moves
 
 # FUNCTIONALITY TO ENABLE THE AGENT TO MOVE AND UPDATE PROBABILITIES BASED ON ACTION TAKEN
-
-
+    
+    def move_down(self):
+        """
+        this updates the probabilities matrix if the agent moves down. (i,j) -> (i+1,j)
+        """
+        p_down = np.zeros(self.probabilities.shape)
+        for i in range(0, self.reactor.shape[0]):
+            for j in range(0, self.reactor.shape[1]):
+                if (i+1, j) not in self.invalid_moves:
+                    p_down[i+1, j] += self.probabilities[i,j]
+                else: p_down[i, j] += self.probabilities[i,j]
+        return p_down 
 
 # DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE
 
@@ -123,8 +133,15 @@ class Agent():
 
         print(f"\nTHE PROBABITIES ARE:")
         print(self.probabilities)
-        
+
+        self.visualize_nuclear_reactor()
+
+        print(f"\nMOVE DOWN, PROBABILITIES NOW:")
+        self.probabilities = self.move_down()
+        print(self.probabilities)
+
         self.visualize_nuclear_reactor()
 
 if __name__ == "__main__":
-    agent = Agent() 
+    #agent = Agent(path="reactors/toyexample.txt") 
+    agent = Agent()
