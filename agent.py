@@ -3,6 +3,24 @@ import heapq
 import numpy as np 
 import matplotlib.pyplot as plt 
 
+class AStarTuple():
+
+    """THIS CLASS WILL MAKE IT EASIER TO USE HEAPS WITH ASTAR."""
+
+    def __init__(self, totalcost, probabilities):
+        self.totalcost = totalcost 
+        self.probabilities = probabilities
+        self.hashableprobability = tuple(self.totalprobabilities.flatten())
+    
+    def __eq__(self, other) -> bool:
+        return self.hashableprobability == other.hashableprobability
+    
+    def __lt__(self, other) -> bool:
+        return self.totalcost < other.totalcost 
+    
+    def __gt__(self, other) -> bool:
+        return self.totalcost > other.totalcost 
+
 class Agent():
 
     def __init__(self, path ="reactors/Thor23-SA74-VERW-Schematic (Classified).txt"):
@@ -29,13 +47,15 @@ class Agent():
     
     def a_star(self):
 
+        print("\n ------ INITIALIZE THE A STAR ALGORITHM -----\n")
+
         def cost(sequence):
             """ @returns the cost up to the point as number of steps taken"""
             return len(sequence)
 
         def heuristic(probabilities):
             """ @returns negative log likelihood of the cell with the highest probability """
-            return -np.log(probabilities.max)
+            return -np.log(probabilities.max())
         
         print(f"\nSTARTING THE A STAR ALGORITHM...")
 
@@ -43,49 +63,59 @@ class Agent():
         heap, visited = list(), set() 
 
         # initialize heap with ( cost(s), ( s, seq(s) ) )
-        init_state, init_seq = self.probabilities, [] 
-        heapq.heappush(heap, (0 + heuristic(init_state), (init_state, init_seq)))
+        s0 = AStarTuple(0 + heuristic(self.probabilities), self.probabilities)
+        heap.append( (s0, []) )
 
-        print(f"\nInitialized The Heap: {heap}")
+        print(f"\nInitialized The Heap:")
+        print(heap)
 
         # run the A* algorithm until termination 
         while len(heap) > 0:
 
+            print("\n ------ POP OFF MIN ITEM FROM HEAP -----\n")
+
             # retrieves the item of minimal cost 
-            _, current_state = heapq.heappop(heap)
-            current_probs, current_seq = current_state
+            curr_state, curr_seq = heapq.heappop(heap)
 
             print(f"\nPopped off minimal cost item from heap!")
-            print(f"The current sequence is: {current_seq}")
+            print(f"The current sequence is: {curr_seq}")
             print(f"The probabilities are:")
-            print(current_probs)
+            print(curr_state.probabilities)
 
             # returns the sequence of moves if terminal state
-            if self.is_terminal_state(current_probs):
+            if self.is_terminal_state(curr_state.probabilities):
                 print(f"\nWe reached a terminal state!")
-                self.actions = current_seq 
-                return current_seq 
+                self.actions = curr_seq 
+                return curr_seq  
             
             # mark the current state as visited 
-            visited.add(tuple(current_probs.flatten()))
+            visited.add(curr_state.hashableprobability)
+
+            print(f"\n The current visited set is: {visited}")
+
+            print("\n ------ LOOKING AT TRANSITIONS NOW -----\n")
 
             # iterate through every possible action possible 
             for action in ["U", "D", "L", "R"]:
 
-                next_probs = self.transition(current_probs, action)
+                next_probs = self.transition(curr_state.probabilities, action)
 
                 print(f"\nIf we move with action {action}, we get the new proabilities:")
                 print(next_probs)
 
                 # if we've already visited this state before continue 
-                if tuple(current_probs.flatten()) not in visited: 
-                    total_cost = heuristic(next_probs) + cost(current_seq)
-                    next_state, next_seq = next_probs, current_seq + [action]
+                if tuple(next_probs.flatten()) not in visited: 
+
+                    total_cost, next_seq= heuristic(next_probs) + cost(curr_seq), curr_seq + [action]
+
+                    s1 = AStarTuple(total_cost, next_probs)
+                    heapq.heappush(heap, (s1, next_seq))
+
                     print(f"\nWe are pushing this information to the heap...")
                     print(f"The total cost: {total_cost}")
                     print(f"The next sequence: {next_seq}")
-                    print(f"The new probabilities: {next_state}")
-                    heapq.heappush(heap, ( total_cost, (next_state, next_seq) ))
+                    print(f"The new probabilities:")
+                    print(s1.probabilities)
 
         return heap 
 
@@ -315,11 +345,10 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample3.txt")
+    agent = Agent(path="reactors/toyexample2.txt")
     # agent = Agent()
-    while not agent.is_terminal_state():
-        print(len(agent.actions))
-        agent.move_intelligently_debug()
+
+    agent.a_star()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
 
