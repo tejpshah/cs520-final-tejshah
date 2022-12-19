@@ -113,6 +113,9 @@ class Agent():
             print(f"The probabilities are:")
             print(curr_state.probabilities)
 
+            self.visualize_nuclear_reactor(curr_state.probabilities)
+            self.visualize_nuclear_reactor_3d(curr_state.probabilities)
+
             # returns the sequence of moves if terminal state
             if self.is_terminal_state(curr_state.probabilities):
                 print(f"\nWe reached a terminal state!")
@@ -364,12 +367,12 @@ class Agent():
 
     # DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE AND OTHER UTILITIES
 
-    def visualize_nuclear_reactor(self):
+    def visualize_nuclear_reactor(self, probabilities):
         """
         generates a visualization of the nuclear reactor configuration along with probs of being at a cell. 0 -> white, 1 -> black
         """
         # set the colormap and color limits 
-        plt.imshow(self.probabilities, cmap='magma', vmin=self.probabilities.min(), vmax=self.probabilities.max())
+        plt.imshow(probabilities, cmap='magma', vmin=probabilities.min(), vmax=probabilities.max())
 
         # show the color bar
         plt.colorbar()
@@ -383,12 +386,12 @@ class Agent():
         for i in range(self.reactor.shape[0]):
             for j in range(self.reactor.shape[1]):
                 if self.reactor[i,j] != 1:
-                    plt.text(j, i, round(self.probabilities[i,j], 3), ha="center", va="center", color="blue", fontsize=6)
+                    plt.text(j, i, round(probabilities[i,j], 3), ha="center", va="center", color="blue", fontsize=6)
 
         # visualizes the nuclear reactor
         plt.show()
 
-    def visualize_nuclear_reactor_3d(self):
+    def visualize_nuclear_reactor_3d(self, probabilities):
         """
         generates a 3D visualization of the nuclear reactor configuration with probs as the height above the surface.
         """
@@ -401,7 +404,7 @@ class Agent():
         x, y = np.meshgrid(range(self.reactor.shape[1]), range(self.reactor.shape[0]))
 
         # plot the surface using the probabilities as the z values
-        ax.plot_surface(x, y, self.probabilities, cmap='magma',  vmin=self.probabilities.min(), vmax=self.probabilities.max())
+        ax.plot_surface(x, y, probabilities, cmap='magma',  vmin=probabilities.min(), vmax=probabilities.max())
 
         # show the plot
         plt.show()
@@ -446,7 +449,7 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample3.txt")
+    agent = Agent(path="reactors/toyexample2.txt")
     #agent = Agent()
     agent.a_star()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
