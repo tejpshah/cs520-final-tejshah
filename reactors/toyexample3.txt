@@ -1,4 +1,5 @@
-_____
-__X__
-_X_XX
-_____
+XXXXXXXXXXXXXXXXX
+XXXXXX_____XXXXXX
+X_______X_______X
+XXXXXX_____XXXXXX
+XXXXXXXXXXXXXXXXX

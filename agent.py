@@ -248,7 +248,8 @@ class Agent():
         """ 
         for i in range(0, probabilities.shape[0]):
             for j in range(0, probabilities.shape[1]):
-                if self.probabilities[i,j] > 0.999: 
+                value = probabilities[i,j]
+                if value > 0.999: 
                     return True 
         return False 
 
@@ -345,12 +346,10 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample2.txt")
-    # agent = Agent()
-
+    agent = Agent(path="reactors/toyexample3.txt")
+    #agent = Agent()
     agent.a_star()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
-
 
     #agent = Agent() 
     # agent.move_deterministically(deactivating_path="sequences/sequence-toyexample2.txt")
