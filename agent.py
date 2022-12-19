@@ -78,16 +78,14 @@ class Agent():
             #return entropy(after_probs) - entropy(before_probs)
             return entropy(after_probs)
 
-            #return -np.log(probabilities.max())   
-        """
+            #return -np.log(probabilities.max())           """
 
-        starting_entropy = entropy(self.probabilities)
 
         def h(next_probs):
             return entropy(next_probs) * (self.get_num_nonzero_clusters(next_probs)/ self.num_white_cells)
         
         def g(prev_probs, next_probs):
-            return  (2*entropy(next_probs) - starting_entropy)
+            return entropy(next_probs) 
         
 
         print(f"\nSTARTING THE A STAR ALGORITHM...")
