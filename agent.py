@@ -2,6 +2,7 @@ import random
 import heapq
 import numpy as np 
 import matplotlib.pyplot as plt 
+from kmeans import avg_clustercom_to_clustercomcom, get_k
 
 class AStarTuple():
 
@@ -84,9 +85,22 @@ class Agent():
         starting_entropy = entropy(self.probabilities)
 
         def h(next_probs):
-            denominator = self.num_white_cells
+            #denominator = self.num_white_cells
             #denominator = 2
-            return entropy(next_probs) * self.get_num_nonzero_clusters(next_probs)
+            #return entropy(next_probs) * self.get_num_nonzero_clusters(next_probs)
+            
+            if avg_clustercom_to_clustercomcom(next_probs) == 0: 
+                value = entropy(next_probs)
+                print(f"THE ENTROPY OF THE NEXT PROB STATE IS: {value}")
+                return entropy(next_probs) 
+            else: 
+                value = entropy(next_probs)
+                value2 = avg_clustercom_to_clustercomcom(next_probs)
+                value3 = get_k(next_probs)
+                print(f"THE ENTROPY OF THE NEXT PROB STATE IS: {value}")
+                print(f"THE AVG CLUSTER DISTANCE OF THE NEXT PROB STATE IS: {value2}")
+                print(f"THE # OF CLUSTERS ARE: {value3}")
+                return entropy(next_probs) * avg_clustercom_to_clustercomcom(next_probs)
         
         def g(prev_probs, next_probs):
             return entropy(next_probs) - starting_entropy
@@ -117,8 +131,8 @@ class Agent():
             print(f"The probabilities are:")
             print(curr_state.probabilities)
 
-            self.visualize_nuclear_reactor(curr_state.probabilities)
-            self.visualize_nuclear_reactor_3d(curr_state.probabilities)
+            #self.visualize_nuclear_reactor(curr_state.probabilities)
+            #self.visualize_nuclear_reactor_3d(curr_state.probabilities)
 
             # returns the sequence of moves if terminal state
             if self.is_terminal_state(curr_state.probabilities):
