@@ -81,11 +81,15 @@ class Agent():
             #return -np.log(probabilities.max())           """
 
 
+        starting_entropy = entropy(self.probabilities)
+
         def h(next_probs):
-            return entropy(next_probs) * (self.get_num_nonzero_clusters(next_probs)/ self.num_white_cells)
+            denominator = self.num_white_cells
+            #denominator = 2
+            return entropy(next_probs) * self.get_num_nonzero_clusters(next_probs)
         
         def g(prev_probs, next_probs):
-            return entropy(next_probs) 
+            return entropy(next_probs) - starting_entropy
         
 
         print(f"\nSTARTING THE A STAR ALGORITHM...")
@@ -137,8 +141,8 @@ class Agent():
                 # if we've already visited this state before continue 
                 if tuple(next_probs.flatten()) not in visited: 
 
-                    print(f"\nIf we move with action {action}, we get the new proabilities:")
-                    print(next_probs)
+                    #print(f"\nIf we move with action {action}, we get the new proabilities:")
+                    #print(next_probs)
 
 
                     #total_cost = round(heuristic(next_probs) + cost(curr_seq), 1)
@@ -161,8 +165,8 @@ class Agent():
                     print(f"\nWe are pushing this information to the heap...")
                     print(f"The total cost: {total_cost}")
                     print(f"The next sequence: {next_seq}")
-                    print(f"The new probabilities:")
-                    print(s1.probabilities)
+                   #print(f"The new probabilities:")
+                    #print(s1.probabilities)
 
         return heap 
 
