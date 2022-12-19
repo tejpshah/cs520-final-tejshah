@@ -30,12 +30,14 @@ class Agent():
     def a_star(self):
 
         def cost(sequence):
-            """ @ returns the cost up to the point as number of steps taken"""
+            """ @returns the cost up to the point as number of steps taken"""
             return len(sequence)
 
         def heuristic(probabilities):
             """ @returns negative log likelihood of the cell with the highest probability """
             return -np.log(probabilities.max)
+        
+        print(f"\nSTARTING THE A STAR ALGORITHM...")
 
         # initialize the heap list and visited set
         heap, visited = list(), set() 
@@ -44,6 +46,8 @@ class Agent():
         init_state, init_seq = self.probabilities, [] 
         heapq.heappush(heap, (0 + heuristic(init_state), (init_state, init_seq)))
 
+        print(f"\nInitialized The Heap: {heap}")
+
         # run the A* algorithm until termination 
         while len(heap) > 0:
 
@@ -51,8 +55,15 @@ class Agent():
             _, current_state = heapq.heappop(heap)
             current_probs, current_seq = current_state
 
+            print(f"\nPopped off minimal cost item from heap!")
+            print(f"The current sequence is: {current_seq}")
+            print(f"The probabilities are:")
+            print(current_probs)
+
             # returns the sequence of moves if terminal state
             if self.is_terminal_state(current_probs):
+                print(f"\nWe reached a terminal state!")
+                self.actions = current_seq 
                 return current_seq 
             
             # mark the current state as visited 
@@ -60,14 +71,22 @@ class Agent():
 
             # iterate through every possible action possible 
             for action in ["U", "D", "L", "R"]:
+
                 next_probs = self.transition(current_probs, action)
+
+                print(f"\nIf we move with action {action}, we get the new proabilities:")
+                print(next_probs)
 
                 # if we've already visited this state before continue 
                 if tuple(current_probs.flatten()) not in visited: 
                     total_cost = heuristic(next_probs) + cost(current_seq)
                     next_state, next_seq = next_probs, current_seq + [action]
+                    print(f"\nWe are pushing this information to the heap...")
+                    print(f"The total cost: {total_cost}")
+                    print(f"The next sequence: {next_seq}")
+                    print(f"The new probabilities: {next_state}")
                     heapq.heappush(heap, ( total_cost, (next_state, next_seq) ))
-                    
+
         return heap 
 
     # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
