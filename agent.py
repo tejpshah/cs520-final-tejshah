@@ -55,23 +55,23 @@ class Agent():
             if self.is_terminal_state(current_probs):
                 return current_seq 
             
-            # if we've already visited this state before continue 
-            if tuple(current_probs.flatten()) in visited: 
-                continue 
-            
             # mark the current state as visited 
             visited.add(tuple(current_probs.flatten()))
 
             # iterate through every possible action possible 
             for action in ["U", "D", "L", "R"]:
-                
+                next_probs = self.transition(current_probs, action)
 
-            
+                # if we've already visited this state before continue 
+                if tuple(current_probs.flatten()) not in visited: 
+                    total_cost = heuristic(next_probs) + cost(current_seq)
+                    next_state, next_seq = next_probs, current_seq + [action]
+                    heapq.heappush(heap, ( total_cost, (next_state, next_seq) ))
+                    
+        return heap 
 
-
-      
     # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
-
+    
     def init_nuclear_reactor_config(self):
         """
         generates a 2D numpy matrix that represents the relevant configuration of a nuclear reactor. 
@@ -132,52 +132,65 @@ class Agent():
 
     # FUNCTIONALITY TO ENABLE THE AGENT TO MOVE AND UPDATE PROBABILITIES BASED ON ACTION TAKEN
 
-    def move_down(self):
+    def transition(self, probabilities, action):
+        """
+        @returns next probability matrix based on the command executed
+        """
+        if action == "R":
+            return self.move_right(probabilities)
+        elif action == "L":
+            return self.move_left(probabilities)
+        elif action == "U":
+            return self.move_up(probabilities) 
+        elif action == "D":
+            return self.move_down(probabilities)
+
+    def move_down(self, probabilities):
         """
         this updates the probabilities matrix if the agent moves down. (i,j) -> (i+1,j)
         """
-        p_down = np.zeros(self.probabilities.shape)
+        p_down = np.zeros(probabilities.shape)
         for i in range(0, self.reactor.shape[0]):
             for j in range(0, self.reactor.shape[1]):
                 if (i+1, j) not in self.invalid_moves:
-                    p_down[i+1, j] += self.probabilities[i,j]
-                else: p_down[i, j] += self.probabilities[i,j]
+                    p_down[i+1, j] += probabilities[i,j]
+                else: p_down[i, j] += probabilities[i,j]
         return p_down 
 
-    def move_up(self):
+    def move_up(self, probabilities):
         """
         this updates the probabilities matrix if the agent moves down. (i,j) -> (i-1,j)
         """
-        p_up = np.zeros(self.probabilities.shape)
+        p_up = np.zeros(probabilities.shape)
         for i in range(0, self.reactor.shape[0]):
             for j in range(0, self.reactor.shape[1]):
                 if (i-1, j) not in self.invalid_moves:
-                    p_up[i-1, j] += self.probabilities[i,j]
-                else: p_up[i, j] += self.probabilities[i,j]
+                    p_up[i-1, j] += probabilities[i,j]
+                else: p_up[i, j] += probabilities[i,j]
         return p_up 
     
-    def move_left(self):
+    def move_left(self, probabilities):
         """
         this updates the probabilities matrix if the agent moves down. (i,j) -> (i,j-1)
         """
-        p_left = np.zeros(self.probabilities.shape)
+        p_left = np.zeros(probabilities.shape)
         for i in range(0, self.reactor.shape[0]):
             for j in range(0, self.reactor.shape[1]):
                 if (i, j-1) not in self.invalid_moves:
-                    p_left[i, j-1] += self.probabilities[i,j]
-                else: p_left[i, j] += self.probabilities[i,j]
+                    p_left[i, j-1] += probabilities[i,j]
+                else: p_left[i, j] += probabilities[i,j]
         return p_left 
     
-    def move_right(self):
+    def move_right(self, probabilities):
         """
         this updates the probabilities matrix if the agent moves down. (i,j) -> (i,j+1)
         """
-        p_left = np.zeros(self.probabilities.shape)
+        p_left = np.zeros(probabilities.shape)
         for i in range(0, self.reactor.shape[0]):
             for j in range(0, self.reactor.shape[1]):
                 if (i, j+1) not in self.invalid_moves:
-                    p_left[i, j+1] += self.probabilities[i,j]
-                else: p_left[i, j] += self.probabilities[i,j]
+                    p_left[i, j+1] += probabilities[i,j]
+                else: p_left[i, j] += probabilities[i,j]
         return p_left 
 
     def is_terminal_state(self, probabilities):
