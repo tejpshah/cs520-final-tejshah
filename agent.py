@@ -84,10 +84,10 @@ class Agent():
         starting_entropy = entropy(self.probabilities)
 
         def h(next_probs):
-            return entropy(next_probs)
+            return entropy(next_probs) * (self.get_num_nonzero_clusters(next_probs)/ self.num_white_cells)
         
         def g(prev_probs, next_probs):
-            return entropy(next_probs) - starting_entropy
+            return  (2*entropy(next_probs) - starting_entropy)
         
 
         print(f"\nSTARTING THE A STAR ALGORITHM...")
@@ -133,11 +133,12 @@ class Agent():
 
                 next_probs = self.transition(curr_state.probabilities, action)
 
-                print(f"\nIf we move with action {action}, we get the new proabilities:")
-                print(next_probs)
-
                 # if we've already visited this state before continue 
                 if tuple(next_probs.flatten()) not in visited: 
+
+                    print(f"\nIf we move with action {action}, we get the new proabilities:")
+                    print(next_probs)
+
 
                     #total_cost = round(heuristic(next_probs) + cost(curr_seq), 1)
                     #next_seq = curr_seq + [action]
@@ -247,6 +248,9 @@ class Agent():
         """
         # count the number of white cells in the nuclear reactor
         num_white_cells = (self.reactor == 0).sum()
+
+        # stores the number of white cells
+        self.num_white_cells = num_white_cells
 
         print(f"The number of white cells are {num_white_cells}.")
 
@@ -444,8 +448,8 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    #agent = Agent(path="reactors/toyexample3.txt")
-    agent = Agent()
+    agent = Agent(path="reactors/toyexample3.txt")
+    #agent = Agent()
     agent.a_star()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
