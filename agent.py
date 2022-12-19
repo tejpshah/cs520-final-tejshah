@@ -10,7 +10,7 @@ class AStarTuple():
     def __init__(self, totalcost, probabilities):
         self.totalcost = totalcost 
         self.probabilities = probabilities
-        self.hashableprobability = tuple(self.totalprobabilities.flatten())
+        self.hashableprobability = tuple(self.probabilities.flatten())
     
     def __eq__(self, other) -> bool:
         return self.hashableprobability == other.hashableprobability
@@ -49,12 +49,12 @@ class Agent():
 
         print("\n ------ INITIALIZE THE A STAR ALGORITHM -----\n")
 
-        def cost(sequence):
+        def cost(curr_probs, next_probs):
             """ @returns the cost up to the point as number of steps taken"""
-            return len(sequence)
+            return 1 - (next_probs.max() - curr_probs.max())
 
         def heuristic(probabilities):
-            """ @returns negative log likelihood of the cell with the highest probability """
+            """ @returns negative log likelihood of the cell with the highest probability"""
             return -np.log(probabilities.max())
         
         print(f"\nSTARTING THE A STAR ALGORITHM...")
@@ -91,7 +91,7 @@ class Agent():
             # mark the current state as visited 
             visited.add(curr_state.hashableprobability)
 
-            print(f"\n The current visited set is: {visited}")
+            # print(f"\n The current visited set is: {visited}")
 
             print("\n ------ LOOKING AT TRANSITIONS NOW -----\n")
 
@@ -106,7 +106,7 @@ class Agent():
                 # if we've already visited this state before continue 
                 if tuple(next_probs.flatten()) not in visited: 
 
-                    total_cost, next_seq= heuristic(next_probs) + cost(curr_seq), curr_seq + [action]
+                    total_cost, next_seq= heuristic(next_probs) + cost(curr_state.probabilities, next_probs), curr_seq + [action]
 
                     s1 = AStarTuple(total_cost, next_probs)
                     heapq.heappush(heap, (s1, next_seq))
