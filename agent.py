@@ -57,15 +57,15 @@ class Agent():
                             entropy += -np.log(probabilities[i,j]) * probabilities[i,j]
                 return entropy 
 
+        """
         def cost_entropy(old_p, new_p):
-            return 2*entropy(new_p) - entropy(old_p)            
-
+            return 2*entropy(new_p) - entropy(old_p)         
 
         def cost_basic(curr_seq):
             return len(curr_seq)
 
         def cost(curr_probs, next_probs):
-            """ @returns the cost up to the point as number of steps taken"""
+            # @returns the cost up to the point as number of steps taken
             #return 0
             #return np.mean(next_probs) - np.mean(curr_probs)
             value = np.std(next_probs, axis=None, ddof=1) - np.std(curr_probs, axis=None, ddof=1)
@@ -73,20 +73,30 @@ class Agent():
             #return 1 - (next_probs.max() - curr_probs.max())
 
         def heuristic(before_probs, after_probs):
-            """ @returns negative log likelihood of the cell with the highest probability"""
+            # @returns negative log likelihood of the cell with the highest probability
             
             #return entropy(after_probs) - entropy(before_probs)
             return entropy(after_probs)
 
-            #return -np.log(probabilities.max())
+            #return -np.log(probabilities.max())   
+        """
+
+        starting_entropy = entropy(self.probabilities)
+
+        def h(next_probs):
+            return entropy(next_probs)
         
+        def g(prev_probs, next_probs):
+            return entropy(next_probs) - starting_entropy
+        
+
         print(f"\nSTARTING THE A STAR ALGORITHM...")
 
         # initialize the heap list and visited set
         heap, visited = list(), set() 
 
         # initialize heap with ( cost(s), ( s, seq(s) ) )
-        s0 = AStarTuple(0 + cost_entropy(np.zeros_like(self.probabilities), self.probabilities), self.probabilities)
+        s0 = AStarTuple(0 + h(self.probabilities), self.probabilities)
         heap.append( (s0, []) )
 
         print(f"\nInitialized The Heap:")
@@ -136,8 +146,8 @@ class Agent():
 
                     #total_cost, next_seq= curr_state.totalcost + heuristic(curr_state.probabilities, next_probs) , curr_seq + [action]
 
-                    total_cost, next_seq= cost_entropy(curr_state.probabilities, next_probs) , curr_seq + [action]
-
+                    #total_cost, next_seq= cost_entropy(curr_state.probabilities, next_probs) , curr_seq + [action]
+                    total_cost, next_seq= g(curr_state.probabilities, next_probs) + h(next_probs), curr_seq + [action]
 
                     s1 = AStarTuple(total_cost, next_probs)
 
@@ -434,8 +444,8 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample1.txt")
-    #agent = Agent()
+    #agent = Agent(path="reactors/toyexample3.txt")
+    agent = Agent()
     agent.a_star()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
