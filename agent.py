@@ -449,7 +449,7 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample2.txt")
+    agent = Agent(path="reactors/toyexample3.txt")
     #agent = Agent()
     agent.a_star()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
