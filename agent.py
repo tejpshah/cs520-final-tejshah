@@ -49,23 +49,35 @@ class Agent():
 
         print("\n ------ INITIALIZE THE A STAR ALGORITHM -----\n")
 
+        def entropy(probabilities):
+                entropy = 0
+                for i in range(probabilities.shape[0]):
+                    for j in range(probabilities.shape[1]):
+                        if probabilities[i,j] > 0:
+                            entropy += -np.log(probabilities[i,j]) * probabilities[i,j]
+                return entropy 
+
+        def cost_entropy(old_p, new_p):
+            return 2*entropy(new_p) - entropy(old_p)            
+
+
         def cost_basic(curr_seq):
             return len(curr_seq)
 
         def cost(curr_probs, next_probs):
             """ @returns the cost up to the point as number of steps taken"""
+            #return 0
             #return np.mean(next_probs) - np.mean(curr_probs)
-            return np.std(next_probs, axis=None, ddof=1) - np.std(curr_probs, axis=None, ddof=1)
+            value = np.std(next_probs, axis=None, ddof=1) - np.std(curr_probs, axis=None, ddof=1)
+            return value * self.get_num_nonzero_clusters(next_probs)
             #return 1 - (next_probs.max() - curr_probs.max())
 
-        def heuristic(probabilities):
+        def heuristic(before_probs, after_probs):
             """ @returns negative log likelihood of the cell with the highest probability"""
-            sum_nll = 0
-            for i in range(probabilities.shape[0]):
-                for j in range(probabilities.shape[1]):
-                    if probabilities[i,j] > 0:
-                        sum_nll += -np.log(probabilities[i,j])
-            return sum_nll
+            
+            #return entropy(after_probs) - entropy(before_probs)
+            return entropy(after_probs)
+
             #return -np.log(probabilities.max())
         
         print(f"\nSTARTING THE A STAR ALGORITHM...")
@@ -74,7 +86,7 @@ class Agent():
         heap, visited = list(), set() 
 
         # initialize heap with ( cost(s), ( s, seq(s) ) )
-        s0 = AStarTuple(0 + heuristic(self.probabilities), self.probabilities)
+        s0 = AStarTuple(0 + cost_entropy(np.zeros_like(self.probabilities), self.probabilities), self.probabilities)
         heap.append( (s0, []) )
 
         print(f"\nInitialized The Heap:")
@@ -117,14 +129,19 @@ class Agent():
                 # if we've already visited this state before continue 
                 if tuple(next_probs.flatten()) not in visited: 
 
-                    #total_cost = round(heuristic(next_probs) + cost_basic(curr_seq), 1)
+                    #total_cost = round(heuristic(next_probs) + cost(curr_seq), 1)
                     #next_seq = curr_seq + [action]
 
-                    total_cost, next_seq= heuristic(next_probs) + cost(curr_state.probabilities, next_probs), curr_seq + [action]
+                    #total_cost, next_seq= heuristic(next_probs) + cost(curr_state.probabilities, next_probs), curr_seq + [action]
+
+                    #total_cost, next_seq= curr_state.totalcost + heuristic(curr_state.probabilities, next_probs) , curr_seq + [action]
+
+                    total_cost, next_seq= cost_entropy(curr_state.probabilities, next_probs) , curr_seq + [action]
+
 
                     s1 = AStarTuple(total_cost, next_probs)
 
-                    if len(heap) < 2000:
+                    if len(heap) < 1000:
                         heapq.heappush(heap, (s1, next_seq))
                     else: 
                         heapq.heappushpop(heap, (s1, next_seq))
@@ -137,6 +154,59 @@ class Agent():
 
         return heap 
 
+    def get_num_nonzero_clusters(self, matrix):
+        """
+        Find the number of connected non-zero clusters in a 2D numpy matrix.
+        
+        Parameters
+        ----------
+        matrix : numpy.ndarray
+            The 2D numpy matrix to search for non-zero clusters.
+        
+        Returns
+        -------
+        int
+            The number of non-zero clusters found in the matrix.
+        
+        Examples
+        --------
+        >>> matrix = np.array([[1, 0, 4], [2, 0, 3], [0, 5, 0]])
+        >>> get_num_nonzero_clusters(matrix)
+        3
+        """
+        # Initialize a visited matrix to track which cells have been visited
+        visited = np.zeros(matrix.shape, dtype=bool)
+        
+        def dfs(i, j):
+            """
+            Depth-first search helper function.
+            """
+            # Mark the current cell as visited
+            visited[i, j] = True
+            
+            # Check the surrounding cells
+            for di, dj in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                # If the surrounding cell is valid and has a non-zero value, 
+                # and has not been visited yet, recursively search it
+                if (0 <= i + di < matrix.shape[0] and 
+                    0 <= j + dj < matrix.shape[1] and 
+                    matrix[i + di, j + dj] and 
+                    not visited[i + di, j + dj]):
+                    dfs(i + di, j + dj)
+        
+        # Initialize the number of non-zero clusters found
+        num_clusters = 0
+        
+        # Iterate through the matrix and search for non-zero clusters
+        for i in range(matrix.shape[0]):
+            for j in range(matrix.shape[1]):
+                if matrix[i, j] and not visited[i, j]:
+                    # If a non-zero cell has not been visited, it belongs to a new cluster
+                    num_clusters += 1
+                    dfs(i, j)
+        
+        return num_clusters
+  
     # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
     
     def init_nuclear_reactor_config(self):
@@ -364,7 +434,7 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample3.txt")
+    agent = Agent(path="reactors/toyexample1.txt")
     #agent = Agent()
     agent.a_star()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
