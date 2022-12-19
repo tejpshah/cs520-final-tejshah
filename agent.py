@@ -49,13 +49,24 @@ class Agent():
 
         print("\n ------ INITIALIZE THE A STAR ALGORITHM -----\n")
 
+        def cost_basic(curr_seq):
+            return len(curr_seq)
+
         def cost(curr_probs, next_probs):
             """ @returns the cost up to the point as number of steps taken"""
-            return 1 - (next_probs.max() - curr_probs.max())
+            #return np.mean(next_probs) - np.mean(curr_probs)
+            return np.std(next_probs, axis=None, ddof=1) - np.std(curr_probs, axis=None, ddof=1)
+            #return 1 - (next_probs.max() - curr_probs.max())
 
         def heuristic(probabilities):
             """ @returns negative log likelihood of the cell with the highest probability"""
-            return -np.log(probabilities.max())
+            sum_nll = 0
+            for i in range(probabilities.shape[0]):
+                for j in range(probabilities.shape[1]):
+                    if probabilities[i,j] > 0:
+                        sum_nll += -np.log(probabilities[i,j])
+            return sum_nll
+            #return -np.log(probabilities.max())
         
         print(f"\nSTARTING THE A STAR ALGORITHM...")
 
@@ -106,10 +117,17 @@ class Agent():
                 # if we've already visited this state before continue 
                 if tuple(next_probs.flatten()) not in visited: 
 
+                    #total_cost = round(heuristic(next_probs) + cost_basic(curr_seq), 1)
+                    #next_seq = curr_seq + [action]
+
                     total_cost, next_seq= heuristic(next_probs) + cost(curr_state.probabilities, next_probs), curr_seq + [action]
 
                     s1 = AStarTuple(total_cost, next_probs)
-                    heapq.heappush(heap, (s1, next_seq))
+
+                    if len(heap) < 2000:
+                        heapq.heappush(heap, (s1, next_seq))
+                    else: 
+                        heapq.heappushpop(heap, (s1, next_seq))
 
                     print(f"\nWe are pushing this information to the heap...")
                     print(f"The total cost: {total_cost}")
