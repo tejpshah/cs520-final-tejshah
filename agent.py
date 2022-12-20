@@ -1,7 +1,9 @@
 import random 
 import heapq
 import numpy as np 
+import random 
 import matplotlib.pyplot as plt 
+from kmeans import get_k, get_com_com_kclusters, get_com_kclusters, avg_clustercom_to_clustercomcom
 
 class AStarTuple():
 
@@ -40,11 +42,231 @@ class Agent():
         # this initializes the set of invalid moves for a configuration
         self.invalid_moves = self.init_invalid_actions()
 
+        # creates a visited set
+        self.visited = {tuple(self.probabilities.flatten())}
+
         # this runs the debug command
         # self.debug()
 
     # "INTELLIGENT" LOGIC TO MOVE THE AGENT WITH RESPECT TO THE CORRECT SEQUENCE
     
+    def entropy(self, probabilities):
+        """calculates the total entropy for a probability matrix wherever probability is non-negative."""
+        entropy = 0
+        for i in range(probabilities.shape[0]):
+            for j in range(probabilities.shape[1]):
+                if probabilities[i,j] > 0:
+                    entropy += -np.log(probabilities[i,j]) * probabilities[i,j]
+        return entropy 
+
+    def utility(self, new_probs):
+        """
+        returns the utlity of a new state
+        """
+        return self.entropy(new_probs) * min(0.1, self.f(new_probs)) * min(0.1, self.g(new_probs))
+        #return self.entropy(new_probs) * self.get_avg_distances_between_clusters(new_probs)
+    
+    def information_gained(self, old_probs, new_probs):
+        """
+        returns the information gained from moving to a new state 
+        """
+        #print(f"THE ACTION HAS AN AVERAGE DISTANCE TO COM OF {avg_clustercom_to_clustercomcom(new_probs)}")
+        
+        information_gain = self.entropy(new_probs) - self.entropy(old_probs)
+        if information_gain == 0: 
+            if get_k(new_probs) == 1:
+                return self.entropy(new_probs)
+            else: return self.g(new_probs)
+        else: return information_gain * self.entropy(new_probs) * min(0.1, self.f(new_probs)) * min(0.1, self.g(new_probs))
+
+    def move_nonverbose(self):
+        
+        # stores the values taken for each action
+        qtable = dict() 
+
+        # the discount factor to discount future rewards and next constants
+        BETA = 0.90; NEXT_STATES = ["U", "D", "L", "R"]
+
+        # iterates through all possible next states
+        for command in NEXT_STATES:
+            # returns the next state probabilities after transitioning after a command 
+            next_state = self.transition(self.probabilities, command)
+
+            # the reward at the current time step 
+            current_reward = self.information_gained(self.probabilities, next_state)
+
+            # returns the utility of transitioning to the next state 
+            expected_future_reward = 0 
+
+            # we predict the value one step into the future
+            for lookahead in NEXT_STATES:
+
+                # returns the looakahead_next_state probabilities after trainsitioning
+                lookahead_next_state = self.transition(next_state, lookahead)
+
+                # computes the utility for this forward lookahead state and adds it to sum
+                expected_future_reward += self.utility(lookahead_next_state)
+
+            # we compute the sum of the expected future reward 
+            total_reward = current_reward + BETA * expected_future_reward
+
+            # we hash the command and the assosciated total reward 
+            qtable[command] = total_reward
+
+            if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
+
+        print(f"\nJust completed computation for the policy...")
+        print(f"The qtable from the curent state is {qtable}")
+
+        # after we have found all the qvalues for the actions, select the action with the min qvalue 
+        possible_actions = list()    
+        minimal_qvalue = min(qtable.values())
+        for action, qvalue in qtable.items():
+            if qvalue == minimal_qvalue: 
+                possible_actions.append(action)
+
+        action_taken = random.choice(possible_actions)
+        self.actions.append(action_taken)
+        self.probabilities = self.transition(self.probabilities, action_taken)
+        self.visited.add(tuple(self.probabilities.flatten()))
+   
+        print(f"Just decided to take the next following action: {action_taken}")
+        print(f"I have taken {len(self.actions)} commands so far!\n")
+
+        if len(self.actions) % 20 == 0:
+            self.visualize_nuclear_reactor(self.probabilities)
+            self.visualize_nuclear_reactor_3d(self.probabilities)
+
+    def move(self):
+        
+        # stores the values taken for each action
+        qtable = dict() 
+
+        # the discount factor to discount future rewards and next constants
+        BETA = 0.90; NEXT_STATES = ["U", "D", "L", "R"]
+
+        # iterates through all possible next states
+        for command in NEXT_STATES:
+
+            print(f"\nThe command being executed is {command}")
+
+            # returns the next state probabilities after transitioning after a command 
+            next_state = self.transition(self.probabilities, command)
+
+            # the reward at the current time step 
+            current_reward = self.information_gained(self.probabilities, next_state)
+            
+            
+            print(f"The current reward is {current_reward}")
+
+
+            # returns the utility of transitioning to the next state 
+            expected_future_reward = 0 
+
+            # we predict the value one step into the future
+            for lookahead in NEXT_STATES:
+
+                # returns the looakahead_next_state probabilities after trainsitioning
+                lookahead_next_state = self.transition(next_state, lookahead)
+
+                # computes the utility for this forward lookahead state and adds it to sum
+                expected_future_reward += self.utility(lookahead_next_state)
+
+            # we compute the sum of the expected future reward 
+            total_reward = current_reward + BETA * expected_future_reward
+
+            print(f"The total reward is {total_reward}\n")
+
+            # we hash the command and the assosciated total reward 
+            qtable[command] = total_reward
+
+            if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
+
+        # penalize values that were last up to be to have down be twice unlikely, same things with right_left
+        """
+            if len(self.actions) > 0 and self.actions[-1] == "U":
+                    qtable["D"] *= 2 
+                elif len(self.actions) > 0 and self.actions[-1] == "D":
+                    qtable["U"] *= 2 
+                elif len(self.actions) > 0 and self.actions[-1] == "L":
+                    qtable["R"] *= 2 
+                elif len(self.actions) > 0 and self.actions[-1] == "R":
+                    qtable["L"] *= 2 
+
+        """
+
+  
+        
+
+        print(f"\nJust completed computation for the policy...")
+        print(f"The qtable from the curent state is {qtable}")
+
+        # after we have found all the qvalues for the actions, select the action with the min qvalue 
+        possible_actions = list()    
+        minimal_qvalue = min(qtable.values())
+        for action, qvalue in qtable.items():
+            if qvalue == minimal_qvalue: 
+                possible_actions.append(action)
+
+        action_taken = random.choice(possible_actions)
+        self.actions.append(action_taken)
+        self.probabilities = self.transition(self.probabilities, action_taken)
+        self.visited.add(tuple(self.probabilities.flatten()))
+   
+        print(f"Just decided to take the next following action: {action_taken}")
+        print(f"Now, my probabilities and state are updated as follows:")
+        print(f"{self.probabilities}")
+        print(f"I have taken {len(self.actions)} commands so far!")
+
+        self.visualize_nuclear_reactor(self.probabilities)
+        self.visualize_nuclear_reactor_3d(self.probabilities)
+
+    def move_deterministically(self, deactivating_path):
+        self.deactivating_path = deactivating_path
+        commands = self.load_deactivating_sequence()
+        print(commands)
+        for action in commands:
+            self.visualize_nuclear_reactor(self.probabilities)
+            self.visualize_nuclear_reactor_3d(self.probabilities)
+            self.probabilities = self.transition(self.probabilities, action)
+
+    def f(self, matrix):
+        
+        def distance(p1, p2):
+            return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
+        
+        # Get the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+       #  print(coms)
+
+        distances = list() 
+
+        # finds the minimum distance between two cluster
+        for c_i in coms:
+            for c_j in coms:
+                distances.append(distance(c_i, c_j))
+
+        return sum(distances) / len(distances)
+
+    def g(self, matrix):
+        # find the center of mass of the center of mass
+        comcom = get_com_com_kclusters(matrix)
+
+        # gets the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+        # a matrix of distances 
+        distances = list() 
+
+        # go through every com in the cluster
+        for com in coms:
+            x, y = com[0], com[1] 
+            a, b = comcom[0], comcom[1] 
+            distances.append( ( (x-a)**2 + (y-b)**2 ) ** 0.5  )
+
+        return max(distances)
+
     def a_star(self):
 
         print("\n ------ INITIALIZE THE A STAR ALGORITHM -----\n")
@@ -80,14 +302,22 @@ class Agent():
 
             #return -np.log(probabilities.max())           """
 
-
         starting_entropy = entropy(self.probabilities)
 
         def h(next_probs):
-            denominator = self.num_white_cells
+            #denominator = self.num_white_cells
             #denominator = 2
-            return entropy(next_probs) * self.get_num_nonzero_clusters(next_probs)
-        
+            #return entropy(next_probs) * self.get_num_nonzero_clusters(next_probs)
+
+            value = entropy(next_probs)
+            value2 = avg_clustercom_to_clustercomcom(next_probs)
+            value3 = get_k(next_probs)
+            print("\n----------------------------\n")
+            print(f"\nTHE ENTROPY OF THE NEXT PROB STATE IS: {value}")
+            print(f"THE AVG CLUSTER DISTANCE OF THE NEXT PROB STATE IS: {value2}")
+            print(f"THE # OF CLUSTERS ARE: {value3}\n")
+            return entropy(next_probs) + avg_clustercom_to_clustercomcom(next_probs) * get_k(next_probs)
+            
         def g(prev_probs, next_probs):
             return entropy(next_probs) - starting_entropy
         
@@ -117,8 +347,8 @@ class Agent():
             print(f"The probabilities are:")
             print(curr_state.probabilities)
 
-            self.visualize_nuclear_reactor(curr_state.probabilities)
-            self.visualize_nuclear_reactor_3d(curr_state.probabilities)
+            # self.visualize_nuclear_reactor(curr_state.probabilities)
+            # self.visualize_nuclear_reactor_3d(curr_state.probabilities)
 
             # returns the sequence of moves if terminal state
             if self.is_terminal_state(curr_state.probabilities):
@@ -223,6 +453,146 @@ class Agent():
         
         return num_clusters
   
+    def avg_clustercom_to_clustercomcom_bfs(self, matrix):
+        
+        # find the center of mass of the center of mass
+        comcom = get_com_com_kclusters(matrix)
+
+        # gets the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+        # a matrix of distances 
+        distances = list() 
+
+        # go through every com in the cluster
+        for com in coms:
+            p1 = self.snap_tuple_to_2d_grid(self.reactor, com)
+            p2 = self.snap_tuple_to_2d_grid(self.reactor, comcom)
+            distances.append(len(self.shortest_path(self.reactor, p1, p2)))
+
+        average = sum(distances) / len(distances) 
+
+        return max(distances)
+
+    def snap_tuple_to_2d_grid(self, maze, tuple_coordinates):
+        # Convert the input maze to a NumPy array
+        maze = np.array(maze)
+        
+        # Find the coordinates of all the zeros in the maze
+        zero_coords = np.argwhere(maze == 0)
+        
+        # Calculate the distances between the input tuple and all the zero coordinates
+        distances = np.linalg.norm(zero_coords - tuple_coordinates, axis=1)
+        
+        # Find the index of the zero coordinate that is closest to the input tuple
+        min_index = np.argmin(distances)
+        
+        # Return the coordinates of the closest zero
+        return tuple(zero_coords[min_index])
+
+    def shortest_path(self, maze, start, end):
+        # initialize the queue with the start position
+        queue = [start]
+        # initialize a set to store visited positions
+        visited = set()
+
+        # initialize a dictionary to store the predecessor of each position
+        predecessor = {}
+
+        # initialize the distance of the start position to be 0
+        distance = {start: 0}
+
+        # while there are still positions in the queue
+        while queue:
+            # get the first position in the queue
+            current_position = queue.pop(0)
+
+            # if the current position is the end position, we are done
+            if current_position == end:
+                break
+
+            # get the coordinates of the current position
+            x, y = current_position
+
+            # check the positions to the north, south, east, and west of the current position
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                # compute the coordinates of the new position
+                new_x, new_y = x + dx, y + dy
+
+                # skip the new position if it is outside the bounds of the maze
+                if not (0 <= new_x < maze.shape[0] and 0 <= new_y < maze.shape[1]):
+                    continue
+
+                # skip the new position if it is blocked
+                if maze[new_x, new_y] == 1:
+                    continue
+
+                # skip the new position if it has already been visited
+                if (new_x, new_y) in visited:
+                    continue
+
+                # add the new position to the queue and mark it as visited
+                queue.append((new_x, new_y))
+                visited.add((new_x, new_y))
+
+                # set the distance of the new position to be the distance of the current position plus 1
+                distance[(new_x, new_y)] = distance[current_position] + 1
+
+                # set the predecessor of the new position to be the current position
+                predecessor[(new_x, new_y)] = current_position
+
+        # if the end position was not reached, return None
+        if end not in distance:
+            return None
+
+        # initialize the shortest path with the end position
+        path = [end]
+
+        # use the predecessor dictionary to reconstruct the shortest path
+        while path[-1] != start:
+            path.append(predecessor[path[-1]])
+
+        # return the shortest path in reverse order
+        return path[::-1]
+
+    def get_two_closest_cluster_distances(self, matrix):
+        
+        def distance(p1, p2):
+            return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
+        
+        # Get the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+        print(self.reactor)
+
+        # finds the minimum distance between two cluster
+        min_distance = float("inf")
+        for c_i in coms:
+            for c_j in coms:
+                d = distance(c_i, c_j)
+                if c_i != c_j and d < min_distance:
+                    min_distance = d
+        return min_distance
+
+    def get_avg_distances_between_clusters(self, matrix):
+        
+        def distance(p1, p2):
+            return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
+        
+        # Get the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+       #  print(coms)
+
+        distances = list() 
+
+        # finds the minimum distance between two cluster
+        for c_i in coms:
+            for c_j in coms:
+                distances.append(distance(c_i, c_j))
+        
+        return sum(distances) / len(distances)
+
     # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
     
     def init_nuclear_reactor_config(self):
@@ -453,11 +823,16 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample3.txt")
+    agent = Agent(path="reactors/toyexample2.txt")
     #agent = Agent()
-    agent.a_star()
+    #agent.a_star()
+
+    while not agent.is_terminal_state(agent.probabilities):
+        agent.move()
+        #agent.move_nonverbose()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
-    #agent = Agent() 
-    # agent.move_deterministically(deactivating_path="sequences/sequence-toyexample2.txt")
+    #agent.move_deterministically(deactivating_path="sequences/sequence-toyexample3.txt")
     # agent = Agent()
+
+    print("Update")
