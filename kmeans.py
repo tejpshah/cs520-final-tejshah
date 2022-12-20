@@ -143,7 +143,7 @@ def get_weighted_k_clusters(matrix):
         # Iterate over each cell in the cluster
         for i, j in cluster:
             # Calculate the weighted value for the cell by multiplying the row and column indices with the value at that cell in the matrix
-            weighted_cluster.append((i * matrix[i, j], j * matrix[i, j]))
+            weighted_cluster.append((i * (matrix[i, j]), j * (matrix[i, j])))
         
         # Add the weighted cluster to the list of weighted clusters
         weighted_clusters.append(weighted_cluster)
@@ -255,7 +255,9 @@ def avg_clustercom_to_clustercomcom(matrix):
         a, b = comcom[0], comcom[1] 
         distances.append( ( (x-a)**2 + (y-b)**2 ) ** 0.5  )
 
-    return sum(distances) / len(distances) 
+    average = sum(distances) / len(distances) 
+
+    return max(distances)
 
 if __name__ == "__main__":
     matrix = np.array([[1, 0, 4], [2, 0, 3], [0, 5, 0]])

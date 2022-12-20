@@ -46,6 +46,43 @@ class Agent():
 
     # "INTELLIGENT" LOGIC TO MOVE THE AGENT WITH RESPECT TO THE CORRECT SEQUENCE
     
+    def entropy(self, probabilities):
+        """calculates the total entropy for a probability matrix wherever probability is non-negative."""
+        entropy = 0
+        for i in range(probabilities.shape[0]):
+            for j in range(probabilities.shape[1]):
+                if probabilities[i,j] > 0:
+                    entropy += -np.log(probabilities[i,j]) * probabilities[i,j]
+        return entropy 
+
+    def utility(self, old_probs, new_probs):
+        """
+        returns the utlity of a new state as
+        utility = information gained + value of a state
+        utility = (entropy(new) - entropy(old)) + entropy(new)
+        """
+        return (self.entropy(new_probs) - self.entropy(old_probs)) + self.entropy(new_probs)
+
+    def move(self):
+        
+        # the reward at the current time step 
+        current_reward = self.entropy(self.probabilities)
+
+        # the discount factor to discount future rewards and next constants
+        BETA = 0.90; NEXT_STATES = ["U", "D", "L", "R"]
+
+        # iterates through all possible next states
+        for command in NEXT_STATES:
+
+            # returns the next state probabilities after transitioning after a command 
+            next_state = self.transition(self.probabilities, command)
+
+            # returns the utility of transitioning to the next state 
+            next_state_utility = 0 
+
+
+
+
     def a_star(self):
 
         print("\n ------ INITIALIZE THE A STAR ALGORITHM -----\n")
@@ -81,27 +118,22 @@ class Agent():
 
             #return -np.log(probabilities.max())           """
 
-
         starting_entropy = entropy(self.probabilities)
 
         def h(next_probs):
             #denominator = self.num_white_cells
             #denominator = 2
             #return entropy(next_probs) * self.get_num_nonzero_clusters(next_probs)
+
+            value = entropy(next_probs)
+            value2 = avg_clustercom_to_clustercomcom(next_probs)
+            value3 = get_k(next_probs)
+            print("\n----------------------------\n")
+            print(f"\nTHE ENTROPY OF THE NEXT PROB STATE IS: {value}")
+            print(f"THE AVG CLUSTER DISTANCE OF THE NEXT PROB STATE IS: {value2}")
+            print(f"THE # OF CLUSTERS ARE: {value3}\n")
+            return entropy(next_probs) + avg_clustercom_to_clustercomcom(next_probs) * get_k(next_probs)
             
-            if avg_clustercom_to_clustercomcom(next_probs) == 0: 
-                value = entropy(next_probs)
-                print(f"THE ENTROPY OF THE NEXT PROB STATE IS: {value}")
-                return entropy(next_probs) 
-            else: 
-                value = entropy(next_probs)
-                value2 = avg_clustercom_to_clustercomcom(next_probs)
-                value3 = get_k(next_probs)
-                print(f"THE ENTROPY OF THE NEXT PROB STATE IS: {value}")
-                print(f"THE AVG CLUSTER DISTANCE OF THE NEXT PROB STATE IS: {value2}")
-                print(f"THE # OF CLUSTERS ARE: {value3}")
-                return entropy(next_probs) * avg_clustercom_to_clustercomcom(next_probs)
-        
         def g(prev_probs, next_probs):
             return entropy(next_probs) - starting_entropy
         
@@ -131,8 +163,8 @@ class Agent():
             print(f"The probabilities are:")
             print(curr_state.probabilities)
 
-            #self.visualize_nuclear_reactor(curr_state.probabilities)
-            #self.visualize_nuclear_reactor_3d(curr_state.probabilities)
+            # self.visualize_nuclear_reactor(curr_state.probabilities)
+            # self.visualize_nuclear_reactor_3d(curr_state.probabilities)
 
             # returns the sequence of moves if terminal state
             if self.is_terminal_state(curr_state.probabilities):
