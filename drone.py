@@ -341,6 +341,69 @@ class Agent():
         # creates a visited set
         self.visited = {tuple(self.probabilities.flatten())}
     
+    # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
+    
+    def init_nuclear_reactor_config(self):
+        """
+        generates a 2D numpy matrix that represents the relevant configuration of a nuclear reactor. 
+        @returns reactor : 2D numpy matrix with the configuration of the reactor {"_" -> 0, "X" -> 1}
+        """
+        # reads in the file as a list of strings
+        with open(self.path, "r") as f:
+            lines = f.readlines() 
+        
+        # remove leading/trailing white spaces in the text file
+        lines = [list(line.strip()) for line in lines]
+
+        # {"_" -> 0, "X" -> 1} conversion for the numpy matrix 
+        lines = [[1 if x == "X" else 0 for x in line] for line in lines]
+
+        # convert the list of lists to a 2D numpy array 
+        reactor = np.array(lines)
+
+        # return a 2D numpy array of the nuclear reactor configuration
+        return reactor 
+    
+    def init_probability_matrix(self):
+        """
+        generates initial transition matrix for where the drone can be as 1 / [# of white cells (aka reactor with 0)] in each location of matrix
+        @returns probabilities : represents the probability of drone being at cell (i,j). 
+        """
+        # count the number of white cells in the nuclear reactor
+        num_white_cells = (self.reactor == 0).sum()
+
+        # stores the number of white cells
+        self.num_white_cells = num_white_cells
+
+        print(f"The number of white cells are {num_white_cells}.")
+
+        # initial probability matrix of same shape as reactor with all being equally likely
+        probabilities = np.ones(self.reactor.shape) * (1 / num_white_cells)
+
+        # set the probability of black cells in reactor to 0
+        probabilities[self.reactor == 1] = 0 
+
+        # return the probability matrix
+        return probabilities 
+    
+    def init_invalid_actions(self):
+        """
+        whenever an agent moves from a cell to another cell we have to check whether the move is invalid.
+        if the move is invalid, then the agent must keep the current location and "not" move in specified direction.
+        @return invalid_moves : dictionary of tuple coordinates (i,j) that are invalid moves for the agent. 
+        """
+        # add all invalid moves that correspond to blocked cells in the grid
+        invalid_moves = {(index[0], index[1]) for index in np.argwhere(self.reactor == 1)}
+
+        # add all invalid moves that are out of bounds 
+        for i in range(-1, self.reactor.shape[0] + 1):
+            for j in range(-1, self.reactor.shape[1] + 1):
+                if i < 0 or j < 0 or i > (self.reactor.shape[0]-1) or j > (self.reactor.shape[1]-1):
+                    invalid_moves.add((i,j))
+        
+        # return the invalid moves set
+        return invalid_moves
+
     # FUNCTIONALITY TO RUN THE AGENT AND START TO MOVE THE AGENT FOR DIFFERENT POLICY
     def move_morl_policy(self):
         """uses the MORL approach to choose actions for the policy"""
@@ -533,7 +596,6 @@ class Agent():
         """
         generates a 3D visualization of the nuclear reactor configuration with probs as the height above the surface.
         """
-
         # create a figure and 3D Axes
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -565,3 +627,15 @@ class Agent():
         # returns the list of commands in the command sequence
         return [command for command in command_sequence if command != ","]
 
+if __name__ == "__main__":
+
+    # INPUT THE NUCLEAR REACTOR PATH 
+    nuclear_reactor_path = "reactors/toyexample2.txt"
+    
+    # INITIALIZE THE AGENT
+    agent = Agent(nuclear_reactor_path)
+
+    # RUN THE AGENT ACCORDING TO THE MORL POLICY
+    while not agent.is_terminal_state(agent.probabilities):
+        agent.move()
+    print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
