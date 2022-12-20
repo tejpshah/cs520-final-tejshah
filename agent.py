@@ -89,14 +89,11 @@ class Agent():
 
         # iterates through all possible next states
         for command in NEXT_STATES:
-
             # returns the next state probabilities after transitioning after a command 
             next_state = self.transition(self.probabilities, command)
 
             # the reward at the current time step 
             current_reward = self.information_gained(self.probabilities, next_state)
-        
-
 
             # returns the utility of transitioning to the next state 
             expected_future_reward = 0 
@@ -116,20 +113,10 @@ class Agent():
             # we hash the command and the assosciated total reward 
             qtable[command] = total_reward
 
-            # if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
+            if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
 
-        # penalize values that were last up to be to have down be twice unlikely, same things with right_left
-
-        """
-        if len(self.actions) > 0 and self.actions[-1] == "U":
-            qtable["D"] *= 2 
-        elif len(self.actions) > 0 and self.actions[-1] == "D":
-            qtable["U"] *= 2 
-        elif len(self.actions) > 0 and self.actions[-1] == "L":
-            qtable["R"] *= 2 
-        elif len(self.actions) > 0 and self.actions[-1] == "R":
-            qtable["L"] *= 2 
-        """
+        print(f"\nJust completed computation for the policy...")
+        print(f"The qtable from the curent state is {qtable}")
 
         # after we have found all the qvalues for the actions, select the action with the min qvalue 
         possible_actions = list()    
@@ -142,10 +129,11 @@ class Agent():
         self.actions.append(action_taken)
         self.probabilities = self.transition(self.probabilities, action_taken)
         self.visited.add(tuple(self.probabilities.flatten()))
+   
+        print(f"Just decided to take the next following action: {action_taken}")
+        print(f"I have taken {len(self.actions)} commands so far!\n")
 
-
-        print(f"TOOK {len(self.actions)} actions")
-        if len(self.actions) % 1000 == 0:
+        if len(self.actions) % 20 == 0:
             self.visualize_nuclear_reactor(self.probabilities)
             self.visualize_nuclear_reactor_3d(self.probabilities)
 
@@ -835,12 +823,13 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample3.txt")
+    agent = Agent(path="reactors/toyexample2.txt")
     #agent = Agent()
     #agent.a_star()
 
     while not agent.is_terminal_state(agent.probabilities):
         agent.move()
+        #agent.move_nonverbose()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
     #agent.move_deterministically(deactivating_path="sequences/sequence-toyexample3.txt")
