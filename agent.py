@@ -55,18 +55,22 @@ class Agent():
                     entropy += -np.log(probabilities[i,j]) * probabilities[i,j]
         return entropy 
 
-    def utility(self, old_probs, new_probs):
+    def utility(self, new_probs):
         """
-        returns the utlity of a new state as
-        utility = information gained + value of a state
-        utility = (entropy(new) - entropy(old)) + entropy(new)
+        returns the utlity of a new state
         """
-        return (self.entropy(new_probs) - self.entropy(old_probs)) + self.entropy(new_probs)
+        return self.entropy(new_probs)
+
+    def information_gained(self, old_probs, new_probs):
+        """
+        returns the information gained from moving to a new state 
+        """
+        return (self.entropy(new_probs) - self.entropy(old_probs))
 
     def move(self):
         
-        # the reward at the current time step 
-        current_reward = self.entropy(self.probabilities)
+        # stores the values taken for each action
+        qtable = dict() 
 
         # the discount factor to discount future rewards and next constants
         BETA = 0.90; NEXT_STATES = ["U", "D", "L", "R"]
@@ -77,10 +81,33 @@ class Agent():
             # returns the next state probabilities after transitioning after a command 
             next_state = self.transition(self.probabilities, command)
 
+            # the reward at the current time step 
+            current_reward = self.information_gained(self.probabilities, next_state)
+
             # returns the utility of transitioning to the next state 
-            next_state_utility = 0 
+            expected_future_reward = 0 
 
+            # we predict the value one step into the future
+            for lookahead in NEXT_STATES:
 
+                # returns the looakahead_next_state probabilities after trainsitioning
+                lookahead_next_state = self.transition(command, lookahead)
+
+                # computes the utility for this forward lookahead state and adds it to sum
+                expected_future_reward += self.utility(lookahead_next_state)
+
+            # we compute the sum of the expected future reward 
+            total_reward = current_reward + BETA * expected_future_reward
+
+            # we hash the command and the assosciated total reward 
+            qtable[command] = total_reward
+
+        # after we have found all the qvalues for the actions, select the action with the min qvalue 
+        minimal_qvalue = min(qtable.values())
+        for action, qvalue in qtable.items():
+            if qvalue == minimal_qvalue: 
+                self.actions.append(action)
+                self.probabilities = self.transition(self.probabilities, action)
 
 
     def a_star(self):
