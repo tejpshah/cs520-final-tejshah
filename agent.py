@@ -74,7 +74,7 @@ class Agent():
         
         information_gain = self.entropy(new_probs) - self.entropy(old_probs)
         if information_gain == 0: return self.g(new_probs)
-        else: return information_gain 
+        else: return information_gain * self.entropy(new_probs) * min(0.1, self.f(new_probs)) * min(0.1, self.g(new_probs))
 
     def move_nonverbose(self):
         
@@ -192,19 +192,19 @@ class Agent():
             if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
 
         # penalize values that were last up to be to have down be twice unlikely, same things with right_left
+        """
+            if len(self.actions) > 0 and self.actions[-1] == "U":
+                    qtable["D"] *= 2 
+                elif len(self.actions) > 0 and self.actions[-1] == "D":
+                    qtable["U"] *= 2 
+                elif len(self.actions) > 0 and self.actions[-1] == "L":
+                    qtable["R"] *= 2 
+                elif len(self.actions) > 0 and self.actions[-1] == "R":
+                    qtable["L"] *= 2 
 
         """
-        if len(self.actions) > 0 and self.actions[-1] == "U":
-            qtable["D"] *= 2 
-        elif len(self.actions) > 0 and self.actions[-1] == "D":
-            qtable["U"] *= 2 
-        elif len(self.actions) > 0 and self.actions[-1] == "L":
-            qtable["R"] *= 2 
-        elif len(self.actions) > 0 and self.actions[-1] == "R":
-            qtable["L"] *= 2 
-        
-        """
 
+  
         
 
         print(f"\nJust completed computation for the policy...")
@@ -832,7 +832,7 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample3.txt")
+    agent = Agent(path="reactors/toyexample6.txt")
     #agent = Agent()
     #agent.a_star()
 
