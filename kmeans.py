@@ -1,4 +1,5 @@
 import numpy as np 
+from collections import deque
 
 def get_k(matrix):
     """
@@ -199,6 +200,77 @@ def get_com_kclusters(matrix):
     # Return the list of centers of mass
     return coms
 
+def snap_tuple_to_2d_grid(maze, tuple_coordinates):
+  x, y = tuple_coordinates
+  x_idx = np.argmin(np.abs(np.arange(maze.shape[0]) - x))
+  y_idx = np.argmin(np.abs(np.arange(maze.shape[1]) - y))
+  return x_idx, y_idx
+
+def shortest_path(maze, start, end):
+    # initialize the queue with the start position
+    queue = [start]
+    # initialize a set to store visited positions
+    visited = set()
+
+    # initialize a dictionary to store the predecessor of each position
+    predecessor = {}
+
+    # initialize the distance of the start position to be 0
+    distance = {start: 0}
+
+    # while there are still positions in the queue
+    while queue:
+        # get the first position in the queue
+        current_position = queue.pop(0)
+
+        # if the current position is the end position, we are done
+        if current_position == end:
+            break
+
+        # get the coordinates of the current position
+        x, y = current_position
+
+        # check the positions to the north, south, east, and west of the current position
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            # compute the coordinates of the new position
+            new_x, new_y = x + dx, y + dy
+
+            # skip the new position if it is outside the bounds of the maze
+            if not (0 <= new_x < maze.shape[0] and 0 <= new_y < maze.shape[1]):
+                continue
+
+            # skip the new position if it is blocked
+            if maze[new_x, new_y] == 1:
+                continue
+
+            # skip the new position if it has already been visited
+            if (new_x, new_y) in visited:
+                continue
+
+            # add the new position to the queue and mark it as visited
+            queue.append((new_x, new_y))
+            visited.add((new_x, new_y))
+
+            # set the distance of the new position to be the distance of the current position plus 1
+            distance[(new_x, new_y)] = distance[current_position] + 1
+
+            # set the predecessor of the new position to be the current position
+            predecessor[(new_x, new_y)] = current_position
+
+    # if the end position was not reached, return None
+    if end not in distance:
+        return None
+
+    # initialize the shortest path with the end position
+    path = [end]
+
+    # use the predecessor dictionary to reconstruct the shortest path
+    while path[-1] != start:
+        path.append(predecessor[path[-1]])
+
+    # return the shortest path in reverse order
+    return path[::-1]
+
 def get_com_com_kclusters(matrix):
     """
     Calculate the center of mass for the center of mass of all the clusters in a 2D numpy matrix.
@@ -268,3 +340,33 @@ if __name__ == "__main__":
     print(get_com_kclusters(matrix))
     print(get_com_com_kclusters(matrix))
     print(avg_clustercom_to_clustercomcom(matrix))
+
+    print(f"TEST")
+    print(get_two_closest_cluster_distances(matrix))
+
+    maze = np.array([[0, 1, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 0, 1],
+                    [0, 1, 0, 0]])
+
+    tuple_coordinates = (2.2, 3.3)
+    closest_coordinates = snap_tuple_to_2d_grid(maze, tuple_coordinates)
+    print(closest_coordinates)  # Output: (1, 2)
+
+    maze = np.array([
+        [0, 1, 0, 0, 0],
+        [0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [1, 0, 0, 0, 0]
+    ])
+
+    # define the start and end positions
+    start = (0, 0)
+    end = (4, 4)
+
+    # find the shortest path
+    path = shortest_path(maze, start, end)
+
+    # print the shortest path
+    print(path)

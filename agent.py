@@ -3,7 +3,7 @@ import heapq
 import numpy as np 
 import random 
 import matplotlib.pyplot as plt 
-from kmeans import avg_clustercom_to_clustercomcom, get_k
+from kmeans import get_k, get_com_com_kclusters, get_com_kclusters
 
 class AStarTuple():
 
@@ -42,6 +42,9 @@ class Agent():
         # this initializes the set of invalid moves for a configuration
         self.invalid_moves = self.init_invalid_actions()
 
+        # creates a visited set
+        self.visited = {tuple(self.probabilities.flatten())}
+
         # this runs the debug command
         # self.debug()
 
@@ -60,7 +63,7 @@ class Agent():
         """
         returns the utlity of a new state
         """
-        return self.entropy(new_probs) * min(0.1, avg_clustercom_to_clustercomcom(new_probs))
+        return self.entropy(new_probs) * min(0.1, self.avg_clustercom_to_clustercomcom(new_probs))
 
     def information_gained(self, old_probs, new_probs):
         """
@@ -69,7 +72,7 @@ class Agent():
         #print(f"THE ACTION HAS AN AVERAGE DISTANCE TO COM OF {avg_clustercom_to_clustercomcom(new_probs)}")
         
         information_gain = self.entropy(new_probs) - self.entropy(old_probs)
-        if information_gain == 0: return avg_clustercom_to_clustercomcom(new_probs)
+        if information_gain == 0: return self.avg_clustercom_to_clustercomcom(new_probs)
         else: return information_gain
 
     def move_nonverbose(self):
@@ -83,12 +86,13 @@ class Agent():
         # iterates through all possible next states
         for command in NEXT_STATES:
 
-
             # returns the next state probabilities after transitioning after a command 
             next_state = self.transition(self.probabilities, command)
 
             # the reward at the current time step 
             current_reward = self.information_gained(self.probabilities, next_state)
+        
+
 
             # returns the utility of transitioning to the next state 
             expected_future_reward = 0 
@@ -108,6 +112,22 @@ class Agent():
             # we hash the command and the assosciated total reward 
             qtable[command] = total_reward
 
+            if tuple(next_state.flatten()) in self.visited:
+                qtable[command] *= 3
+
+        # penalize values that were last up to be to have down be twice unlikely, same things with right_left
+
+        """
+        if len(self.actions) > 0 and self.actions[-1] == "U":
+            qtable["D"] *= 2 
+        elif len(self.actions) > 0 and self.actions[-1] == "D":
+            qtable["U"] *= 2 
+        elif len(self.actions) > 0 and self.actions[-1] == "L":
+            qtable["R"] *= 2 
+        elif len(self.actions) > 0 and self.actions[-1] == "R":
+            qtable["L"] *= 2 
+        """
+
         # after we have found all the qvalues for the actions, select the action with the min qvalue 
         possible_actions = list()    
         minimal_qvalue = min(qtable.values())
@@ -118,13 +138,17 @@ class Agent():
         action_taken = random.choice(possible_actions)
         self.actions.append(action_taken)
         self.probabilities = self.transition(self.probabilities, action_taken)
-
+        self.visited.add(tuple(self.probabilities.flatten()))
+   
+        print(f"Just decided to take the next following action: {action_taken}")
+        print(f"Now, my probabilities and state are updated as follows:")
+        print(f"{self.probabilities}")
         print(f"I have taken {len(self.actions)} commands so far!")
 
-        if len(self.actions) % 10 == 0:
+        if len(self.probabilities) % 10 == 0:
             self.visualize_nuclear_reactor(self.probabilities)
             self.visualize_nuclear_reactor_3d(self.probabilities)
-        
+
     def move(self):
         
         # stores the values taken for each action
@@ -168,6 +192,9 @@ class Agent():
             # we hash the command and the assosciated total reward 
             qtable[command] = total_reward
 
+            if tuple(next_state.flatten()) in self.visited:
+                qtable[command] *= 3
+
         # penalize values that were last up to be to have down be twice unlikely, same things with right_left
 
         """
@@ -194,6 +221,7 @@ class Agent():
         action_taken = random.choice(possible_actions)
         self.actions.append(action_taken)
         self.probabilities = self.transition(self.probabilities, action_taken)
+        self.visited.add(tuple(self.probabilities.flatten()))
    
         print(f"Just decided to take the next following action: {action_taken}")
         print(f"Now, my probabilities and state are updated as follows:")
@@ -398,6 +426,127 @@ class Agent():
         
         return num_clusters
   
+    def avg_clustercom_to_clustercomcom(self, matrix):
+        
+        # find the center of mass of the center of mass
+        comcom = get_com_com_kclusters(matrix)
+
+        # gets the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+        # a matrix of distances 
+        distances = list() 
+
+        # go through every com in the cluster
+        for com in coms:
+            p1 = self.snap_tuple_to_2d_grid(self.reactor, com)
+            p2 = self.snap_tuple_to_2d_grid(self.reactor, comcom)
+            distances.append(len(self.shortest_path(self.reactor, p1, p2)))
+
+        average = sum(distances) / len(distances) 
+
+        return max(distances)
+
+    def snap_tuple_to_2d_grid(self, maze, tuple_coordinates):
+        # Convert the input maze to a NumPy array
+        maze = np.array(maze)
+        
+        # Find the coordinates of all the zeros in the maze
+        zero_coords = np.argwhere(maze == 0)
+        
+        # Calculate the distances between the input tuple and all the zero coordinates
+        distances = np.linalg.norm(zero_coords - tuple_coordinates, axis=1)
+        
+        # Find the index of the zero coordinate that is closest to the input tuple
+        min_index = np.argmin(distances)
+        
+        # Return the coordinates of the closest zero
+        return tuple(zero_coords[min_index])
+
+    def shortest_path(self, maze, start, end):
+        # initialize the queue with the start position
+        queue = [start]
+        # initialize a set to store visited positions
+        visited = set()
+
+        # initialize a dictionary to store the predecessor of each position
+        predecessor = {}
+
+        # initialize the distance of the start position to be 0
+        distance = {start: 0}
+
+        # while there are still positions in the queue
+        while queue:
+            # get the first position in the queue
+            current_position = queue.pop(0)
+
+            # if the current position is the end position, we are done
+            if current_position == end:
+                break
+
+            # get the coordinates of the current position
+            x, y = current_position
+
+            # check the positions to the north, south, east, and west of the current position
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                # compute the coordinates of the new position
+                new_x, new_y = x + dx, y + dy
+
+                # skip the new position if it is outside the bounds of the maze
+                if not (0 <= new_x < maze.shape[0] and 0 <= new_y < maze.shape[1]):
+                    continue
+
+                # skip the new position if it is blocked
+                if maze[new_x, new_y] == 1:
+                    continue
+
+                # skip the new position if it has already been visited
+                if (new_x, new_y) in visited:
+                    continue
+
+                # add the new position to the queue and mark it as visited
+                queue.append((new_x, new_y))
+                visited.add((new_x, new_y))
+
+                # set the distance of the new position to be the distance of the current position plus 1
+                distance[(new_x, new_y)] = distance[current_position] + 1
+
+                # set the predecessor of the new position to be the current position
+                predecessor[(new_x, new_y)] = current_position
+
+        # if the end position was not reached, return None
+        if end not in distance:
+            return None
+
+        # initialize the shortest path with the end position
+        path = [end]
+
+        # use the predecessor dictionary to reconstruct the shortest path
+        while path[-1] != start:
+            path.append(predecessor[path[-1]])
+
+        # return the shortest path in reverse order
+        return path[::-1]
+
+    def get_two_closest_cluster_distances(self, matrix):
+        # Get the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+        print(self.reactor)
+
+        # finds the minimum distance between two cluster
+        min_distance = float("inf")
+        for c_i in coms:
+            for c_j in coms:
+                c_i = self.snap_tuple_to_2d_grid(self.reactor, c_i)
+                c_j = self.snap_tuple_to_2d_grid(self.reactor, c_j)
+                print(c_i, c_j, self.reactor[c_i[0], c_i[1]], self.reactor[c_j[0], c_j[1]])
+                d = self.shortest_path(self.reactor, c_i, c_j)
+                if c_i != c_j and len(d) < min_distance:
+                    print(len(d))
+                    min_distance = len(d)
+        return min_distance
+
     # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
     
     def init_nuclear_reactor_config(self):
@@ -628,14 +777,13 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample3.txt")
-    #agent = Agent()
+    #agent = Agent(path="reactors/toyexample3.txt")
+    agent = Agent()
     #agent.a_star()
 
-    #while not agent.is_terminal_state(agent.probabilities):
-        #agent.move()
-    #print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
+    while not agent.is_terminal_state(agent.probabilities):
+        agent.move_nonverbose()
+    print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
-    #agent = Agent() 
-    agent.move_deterministically(deactivating_path="sequences/sequence-toyexample3.txt")
+    #agent.move_deterministically(deactivating_path="sequences/sequence-toyexample3.txt")
     # agent = Agent()
