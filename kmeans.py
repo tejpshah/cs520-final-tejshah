@@ -329,7 +329,7 @@ def avg_clustercom_to_clustercomcom(matrix):
         distances.append( ( (x-a)**2 + (y-b)**2 ) ** 0.5  )
 
     average = sum(distances) / len(distances) 
-
+    # return average 
     return max(distances)
 
 if __name__ == "__main__":

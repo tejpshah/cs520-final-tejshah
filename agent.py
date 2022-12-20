@@ -63,8 +63,9 @@ class Agent():
         """
         returns the utlity of a new state
         """
-        return self.entropy(new_probs) * min(0.1, avg_clustercom_to_clustercomcom(new_probs))
-
+        return self.entropy(new_probs) * min(0.1, self.f(new_probs)) * min(0.1, self.g(new_probs))
+        #return self.entropy(new_probs) * self.get_avg_distances_between_clusters(new_probs)
+    
     def information_gained(self, old_probs, new_probs):
         """
         returns the information gained from moving to a new state 
@@ -72,7 +73,7 @@ class Agent():
         #print(f"THE ACTION HAS AN AVERAGE DISTANCE TO COM OF {avg_clustercom_to_clustercomcom(new_probs)}")
         
         information_gain = self.entropy(new_probs) - self.entropy(old_probs)
-        if information_gain == 0: return self.get_avg_distances_between_clusters(new_probs)
+        if information_gain == 0: return self.g(new_probs)
         else: return information_gain 
 
     def move_nonverbose(self):
@@ -112,8 +113,7 @@ class Agent():
             # we hash the command and the assosciated total reward 
             qtable[command] = total_reward
 
-            if tuple(next_state.flatten()) in self.visited:
-                qtable[command] *= 3
+            # if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
 
         # penalize values that were last up to be to have down be twice unlikely, same things with right_left
 
@@ -238,6 +238,43 @@ class Agent():
             self.visualize_nuclear_reactor(self.probabilities)
             self.visualize_nuclear_reactor_3d(self.probabilities)
             self.probabilities = self.transition(self.probabilities, action)
+
+    def f(self, matrix):
+        
+        def distance(p1, p2):
+            return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
+        
+        # Get the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+       #  print(coms)
+
+        distances = list() 
+
+        # finds the minimum distance between two cluster
+        for c_i in coms:
+            for c_j in coms:
+                distances.append(distance(c_i, c_j))
+
+        return sum(distances) / len(distances)
+
+    def g(self, matrix):
+        # find the center of mass of the center of mass
+        comcom = get_com_com_kclusters(matrix)
+
+        # gets the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+        # a matrix of distances 
+        distances = list() 
+
+        # go through every com in the cluster
+        for com in coms:
+            x, y = com[0], com[1] 
+            a, b = comcom[0], comcom[1] 
+            distances.append( ( (x-a)**2 + (y-b)**2 ) ** 0.5  )
+
+        return max(distances)
 
     def a_star(self):
 
@@ -554,7 +591,7 @@ class Agent():
         # Get the list of centers of mass for each cluster
         coms = get_com_kclusters(matrix)
 
-        print(coms)
+       #  print(coms)
 
         distances = list() 
 
