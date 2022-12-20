@@ -73,7 +73,10 @@ class Agent():
         #print(f"THE ACTION HAS AN AVERAGE DISTANCE TO COM OF {avg_clustercom_to_clustercomcom(new_probs)}")
         
         information_gain = self.entropy(new_probs) - self.entropy(old_probs)
-        if information_gain == 0: return self.g(new_probs)
+        if information_gain == 0: 
+            if get_k(new_probs) == 1:
+                return self.entropy(new_probs)
+            else: return self.g(new_probs)
         else: return information_gain * self.entropy(new_probs) * min(0.1, self.f(new_probs)) * min(0.1, self.g(new_probs))
 
     def move_nonverbose(self):
@@ -832,7 +835,7 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    agent = Agent(path="reactors/toyexample6.txt")
+    agent = Agent(path="reactors/toyexample3.txt")
     #agent = Agent()
     #agent.a_star()
 
