@@ -3,7 +3,7 @@ import heapq
 import numpy as np 
 import random 
 import matplotlib.pyplot as plt 
-from kmeans import get_k, get_com_com_kclusters, get_com_kclusters
+from kmeans import get_k, get_com_com_kclusters, get_com_kclusters, avg_clustercom_to_clustercomcom
 
 class AStarTuple():
 
@@ -63,7 +63,7 @@ class Agent():
         """
         returns the utlity of a new state
         """
-        return self.entropy(new_probs) * min(0.1, self.avg_clustercom_to_clustercomcom(new_probs))
+        return self.entropy(new_probs) * min(0.1, avg_clustercom_to_clustercomcom(new_probs))
 
     def information_gained(self, old_probs, new_probs):
         """
@@ -72,8 +72,8 @@ class Agent():
         #print(f"THE ACTION HAS AN AVERAGE DISTANCE TO COM OF {avg_clustercom_to_clustercomcom(new_probs)}")
         
         information_gain = self.entropy(new_probs) - self.entropy(old_probs)
-        if information_gain == 0: return self.avg_clustercom_to_clustercomcom(new_probs)
-        else: return information_gain
+        if information_gain == 0: return self.get_avg_distances_between_clusters(new_probs)
+        else: return information_gain 
 
     def move_nonverbose(self):
         
@@ -139,13 +139,10 @@ class Agent():
         self.actions.append(action_taken)
         self.probabilities = self.transition(self.probabilities, action_taken)
         self.visited.add(tuple(self.probabilities.flatten()))
-   
-        print(f"Just decided to take the next following action: {action_taken}")
-        print(f"Now, my probabilities and state are updated as follows:")
-        print(f"{self.probabilities}")
-        print(f"I have taken {len(self.actions)} commands so far!")
 
-        if len(self.probabilities) % 10 == 0:
+
+        print(f"TOOK {len(self.actions)} actions")
+        if len(self.actions) % 1000 == 0:
             self.visualize_nuclear_reactor(self.probabilities)
             self.visualize_nuclear_reactor_3d(self.probabilities)
 
@@ -192,8 +189,7 @@ class Agent():
             # we hash the command and the assosciated total reward 
             qtable[command] = total_reward
 
-            if tuple(next_state.flatten()) in self.visited:
-                qtable[command] *= 3
+            if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
 
         # penalize values that were last up to be to have down be twice unlikely, same things with right_left
 
@@ -206,7 +202,10 @@ class Agent():
             qtable["R"] *= 2 
         elif len(self.actions) > 0 and self.actions[-1] == "R":
             qtable["L"] *= 2 
+        
         """
+
+        
 
         print(f"\nJust completed computation for the policy...")
         print(f"The qtable from the curent state is {qtable}")
@@ -426,7 +425,7 @@ class Agent():
         
         return num_clusters
   
-    def avg_clustercom_to_clustercomcom(self, matrix):
+    def avg_clustercom_to_clustercomcom_bfs(self, matrix):
         
         # find the center of mass of the center of mass
         comcom = get_com_com_kclusters(matrix)
@@ -529,6 +528,10 @@ class Agent():
         return path[::-1]
 
     def get_two_closest_cluster_distances(self, matrix):
+        
+        def distance(p1, p2):
+            return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
+        
         # Get the list of centers of mass for each cluster
         coms = get_com_kclusters(matrix)
 
@@ -538,14 +541,29 @@ class Agent():
         min_distance = float("inf")
         for c_i in coms:
             for c_j in coms:
-                c_i = self.snap_tuple_to_2d_grid(self.reactor, c_i)
-                c_j = self.snap_tuple_to_2d_grid(self.reactor, c_j)
-                print(c_i, c_j, self.reactor[c_i[0], c_i[1]], self.reactor[c_j[0], c_j[1]])
-                d = self.shortest_path(self.reactor, c_i, c_j)
-                if c_i != c_j and len(d) < min_distance:
-                    print(len(d))
-                    min_distance = len(d)
+                d = distance(c_i, c_j)
+                if c_i != c_j and d < min_distance:
+                    min_distance = d
         return min_distance
+
+    def get_avg_distances_between_clusters(self, matrix):
+        
+        def distance(p1, p2):
+            return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
+        
+        # Get the list of centers of mass for each cluster
+        coms = get_com_kclusters(matrix)
+
+        print(coms)
+
+        distances = list() 
+
+        # finds the minimum distance between two cluster
+        for c_i in coms:
+            for c_j in coms:
+                distances.append(distance(c_i, c_j))
+        
+        return sum(distances) / len(distances)
 
     # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
     
@@ -777,12 +795,12 @@ class Agent():
         self.visualize_nuclear_reactor_3d()
 
 if __name__ == "__main__":
-    #agent = Agent(path="reactors/toyexample3.txt")
-    agent = Agent()
+    agent = Agent(path="reactors/toyexample3.txt")
+    #agent = Agent()
     #agent.a_star()
 
     while not agent.is_terminal_state(agent.probabilities):
-        agent.move_nonverbose()
+        agent.move()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
     #agent.move_deterministically(deactivating_path="sequences/sequence-toyexample3.txt")
