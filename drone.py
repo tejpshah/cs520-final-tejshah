@@ -1,4 +1,5 @@
 import random 
+import heapq
 import numpy as np 
 import matplotlib.pyplot as plt
 
@@ -144,10 +145,45 @@ def get_k_clusters_centroid_of_centroids(matrix):
     return (x_avg, y_avg)
 
 def snap_tuple_to_2d_grid(maze, tuple_coordinates):
-  """this will help us move towards the closest coordinates"""
+  
+  print(tuple_coordinates)
+  
+  def dfs(x, y):
+    # Add the current node to the stack and mark it as visited
+    stack.append((x, y))
+    visited[x, y] = True
+
+    # Get a list of all the neighboring nodes of the current node
+    neighbors = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
+
+    # For each neighbor
+    for nx, ny in neighbors:
+      # Check if the neighbor is within the bounds of the maze and is a 0
+      if (0 <= nx < maze.shape[0]) and (0 <= ny < maze.shape[1]) and (maze[nx, ny] == 0):
+        # Set x_idx and y_idx to the coordinates of the neighbor and return
+        x_idx, y_idx = nx, ny
+        return
+
+      # If the neighbor has not been visited, recursively call the DFS function with the neighbor as the starting node
+      if not visited[nx, ny]:
+        dfs(nx, ny)
+
+    # If all the neighbors have been visited or none of them are 0s, pop the current node from the stack
+    stack.pop()
+
+  # Initialize the stack and the visited matrix
+  stack = []
+  visited = np.full(maze.shape, False, dtype=bool)
+
+  # Initialize the current node with the starting node (x_idx, y_idx)
   x, y = tuple_coordinates
   x_idx = np.argmin(np.abs(np.arange(maze.shape[0]) - x))
   y_idx = np.argmin(np.abs(np.arange(maze.shape[1]) - y))
+
+  print(x_idx, y_idx)
+  # Call the DFS function with the starting node as the current node
+  x_idx, y_idx = dfs(x_idx, y_idx)
+
   return x_idx, y_idx
 
 def bfs(maze, start, end):
@@ -216,106 +252,6 @@ def bfs(maze, start, end):
     # return the shortest path in reverse order
     return len(path[::-1])
 
-################# OBJECTIVE FUNCTIONS FOR MULTI-OBJECTIVE RL #################
-
-def calculate_entropy(probabilities):
-    """
-    this function calculates the entropy for all probabilities in matrix >0 
-    """
-    entropy = 0
-    for i in range(probabilities.shape[0]):
-        for j in range(probabilities.shape[1]):
-            if probabilities[i,j] > 0:
-                entropy += -np.log(probabilities[i,j]) * probabilities[i,j]
-    return entropy 
-
-def calculate_information_gain(old_probs, new_probs):
-    """
-    this function calculates the information gain as the change in entropy 
-    """
-    return calculate_entropy(new_probs) - calculate_entropy(old_probs)
-
-def get_avg_pairwise_distance_cluster_centroids(matrix):
-    """
-    this will find the average pairwise distance between each cluster's centroid
-    """
-    def distance(p1, p2):
-        return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
-    
-    # Get the list of centers of mass for each cluster
-    coms = get_k_clusters_centroids(matrix)
-
-    #  print(coms)
-
-    distances = list() 
-
-    # finds the minimum distance between two cluster
-    for c_i in coms:
-        for c_j in coms:
-            distances.append(distance(c_i, c_j))
-
-    return sum(distances) / len(distances)
-
-def get_max_dist_from_kth_cluster_to_centroid_of_centroids(matrix):
-    """get_max_dist_from_kth_cluster_to_centroid_of_centroids"""
-    # find the center of mass of the center of mass
-    comcom = get_k_clusters_centroid_of_centroids(matrix)
-
-    # gets the list of centers of mass for each cluster
-    coms = get_k_clusters_centroid_of_centroids(matrix)
-
-    # a matrix of distances 
-    distances = list() 
-
-    # go through every com in the cluster
-    for com in coms:
-        x, y = com[0], com[1] 
-        a, b = comcom[0], comcom[1] 
-        distances.append( ( (x-a)**2 + (y-b)**2 ) ** 0.5  )
-
-    return max(distances)
-
-def get_two_farthest_cluster_distances(matrix):
-    """start to move the two closest clusters towards each """
-    
-    def distance(p1, p2):
-        return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
-    
-    # Get the list of centers of mass for each cluster
-    coms = get_k_clusters_centroids(matrix)
-
-    # finds the  distance between two cluster
-    max_distance = -float("inf")
-    for c_i in coms:
-        for c_j in coms:
-            d = distance(c_i, c_j)
-            if c_i != c_j and d > max_distance:
-                max_distance = d
-
-    return max_distance
-
-def compute_utility(new_probs):
-    """this will compute the utility for a particular state"""
-    objective_h = calculate_entropy(new_probs)
-    objective_f = min(0.1, get_avg_pairwise_distance_cluster_centroids(new_probs))
-    objective_g = min(0.1, get_max_dist_from_kth_cluster_to_centroid_of_centroids(new_probs))
-    return objective_h * objective_f * objective_g
-
-def compute_reward(old_probs, new_probs):
-    """this will compute the reward for a particular state"""
-    objective_i = calculate_information_gain(old_probs, new_probs)
-    objective_h = calculate_entropy(new_probs)
-    objective_f = min(0.1, get_avg_pairwise_distance_cluster_centroids(new_probs))
-    objective_g = min(0.1, get_max_dist_from_kth_cluster_to_centroid_of_centroids(new_probs))
-    objective_l = get_two_farthest_cluster_distances(new_probs)
-    k_clusters = get_k(new_probs)
-
-    if k_clusters == 1:
-        return calculate_entropy(new_probs)
-    elif objective_i > 0:
-        return objective_i * objective_h * objective_f * objective_g
-    else:
-        return objective_l
 
 ################# INITIALIZES THE AGENT TO ACT IN THIS DEFINED MDP #################
 
@@ -404,8 +340,124 @@ class Agent():
         # return the invalid moves set
         return invalid_moves
 
+    # OBJECTIVE FUNCTIONS FOR MULTI-OBJECTIVE RL
+    
+    def calculate_entropy(self, probabilities):
+        """
+        this function calculates the entropy for all probabilities in matrix >0 
+        """
+        entropy = 0
+        for i in range(probabilities.shape[0]):
+            for j in range(probabilities.shape[1]):
+                if probabilities[i,j] > 0:
+                    entropy += -np.log(probabilities[i,j]) * probabilities[i,j]
+        return entropy 
+
+    def calculate_information_gain(self, old_probs, new_probs):
+        """
+        this function calculates the information gain as the change in entropy 
+        """
+        return self.calculate_entropy(new_probs) - self.calculate_entropy(old_probs)
+
+    def get_avg_pairwise_distance_cluster_centroids(self, matrix):
+        """
+        this will find the average pairwise distance between each cluster's centroid
+        """
+        def distance(p1, p2):
+            return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
+
+        # Get the list of centers of mass for each cluster
+        coms = get_k_clusters_centroids(matrix)
+
+        #  print(coms)
+
+        distances = list() 
+
+        # finds the minimum distance between two cluster
+        for c_i in coms:
+            for c_j in coms:
+                # c_i = snap_tuple_to_2d_grid(self.reactor, c_i)
+                # c_j = snap_tuple_to_2d_grid(self.reactor, c_j)
+                #distances.append(bfs(self.reactor, c_i, c_j))
+                distances.append(distance(c_i, c_j))
+
+        return sum(distances) / len(distances)
+
+    def get_max_dist_from_kth_cluster_to_centroid_of_centroids(self, matrix):
+        """get_max_dist_from_kth_cluster_to_centroid_of_centroids"""
+        
+        def distance(p1, p2):
+            return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
+
+        # find the center of mass of the center of mass
+        comcom = get_k_clusters_centroid_of_centroids(matrix)
+
+        # gets the list of centers of mass for each cluster
+        coms = get_k_clusters_centroids(matrix)
+
+        # a matrix of distances 
+        distances = list() 
+
+        # go through every com in the cluster
+        for com in coms:
+            x, y = com[0], com[1] 
+            a, b = comcom[0], comcom[1] 
+            distances.append( ( (x-a)**2 + (y-b)**2 ) ** 0.5  )
+            #print(com, comcom)
+            #com = snap_tuple_to_2d_grid(self.reactor, com)
+            #comcom = snap_tuple_to_2d_grid(self.reactor, comcom)
+            #print(com, comcom)
+            #distances.append(bfs(self.reactor, com, comcom))
+        
+        # print(distances)
+        return max(distances)
+
+    def get_two_farthest_cluster_distances(self, matrix):
+        """start to move the two closest clusters towards each """
+
+        def distance(p1, p2):
+            return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 ) ** 0.5
+
+        # Get the list of centers of mass for each cluster
+        coms = get_k_clusters_centroids(matrix)
+
+        # finds the  distance between two cluster
+        # finds the  distance between two cluster
+        max_distance = -float("inf")
+        for c_i in coms:
+            for c_j in coms:
+                d = distance(c_i, c_j)
+                if c_i != c_j and d > max_distance:
+                    max_distance = d
+        return max_distance
+
+    def compute_utility(self, new_probs):
+        """this will compute the utility for a particular state"""
+        objective_h = self.calculate_entropy(new_probs)
+        objective_f = min(0.1, self.get_avg_pairwise_distance_cluster_centroids(new_probs))
+        objective_g = min(0.1, self.get_max_dist_from_kth_cluster_to_centroid_of_centroids(new_probs))
+        return objective_h * objective_f * objective_g
+
+    def compute_reward(self, old_probs, new_probs):
+        """this will compute the reward for a particular state"""
+        objective_i = self.calculate_information_gain(old_probs, new_probs)
+        objective_h = self.calculate_entropy(new_probs)
+        objective_f = min(0.1, self.get_avg_pairwise_distance_cluster_centroids(new_probs))
+        objective_g = min(0.1, self.get_max_dist_from_kth_cluster_to_centroid_of_centroids(new_probs))
+        objective_l = self.get_two_farthest_cluster_distances(new_probs)
+        k_clusters = get_k(new_probs)
+
+        if objective_i == 0:
+            if k_clusters == 1:
+                return objective_h
+            else: 
+                return objective_l
+        else:
+            return objective_i * objective_h * objective_f * objective_g
+
     # FUNCTIONALITY TO RUN THE AGENT AND START TO MOVE THE AGENT FOR DIFFERENT POLICY
-    def move_morl_policy(self):
+
+    def move_morl_policy_verbose(self):
         """uses the MORL approach to choose actions for the policy"""
         
         # stores the values taken for each action
@@ -472,6 +524,64 @@ class Agent():
 
         self.visualize_nuclear_reactor(self.probabilities)
         self.visualize_nuclear_reactor_3d(self.probabilities)
+
+    def move_morl_policy(self):
+        """uses the MORL approach to choose actions for the policy"""
+        
+        # stores the values taken for each action
+        qtable = dict() 
+
+        # the discount factor to discount future rewards and next constants
+        BETA = 0.90; NEXT_STATES = ["U", "D", "L", "R"]
+
+         # iterates through all possible next states
+        for command in NEXT_STATES:
+
+            # returns the next state probabilities after transitioning after a command 
+            next_state = self.transition(self.probabilities, command)
+
+            # the reward at the current time step 
+            current_reward = self.compute_reward(self.probabilities, next_state)
+
+            # returns the utility of transitioning to the next state 
+            expected_future_reward = 0 
+
+            # we predict the value one step into the future
+            for lookahead in NEXT_STATES:
+
+                # returns the looakahead_next_state probabilities after trainsitioning
+                lookahead_next_state = self.transition(next_state, lookahead)
+
+                # computes the utility for this forward lookahead state and adds it to sum
+                expected_future_reward += self.compute_utility(lookahead_next_state)
+
+            # we compute the sum of the expected future reward 
+            total_reward = current_reward + BETA * expected_future_reward
+
+            # we hash the command and the assosciated total reward 
+            qtable[command] = total_reward
+
+            # if we have seen the state before, it's penalized by a factor of 3
+            if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
+
+        # after we have found all the qvalues for the actions, select the action with the min qvalue 
+        possible_actions = list()    
+        minimal_qvalue = min(qtable.values())
+        for action, qvalue in qtable.items():
+            if qvalue == minimal_qvalue: 
+                possible_actions.append(action)
+
+        action_taken = random.choice(possible_actions)
+        self.actions.append(action_taken)
+        self.probabilities = self.transition(self.probabilities, action_taken)
+        self.visited.add(tuple(self.probabilities.flatten()))
+   
+        print(f"Action Taken: {action_taken}\tSteps Taken:{len(self.actions)}")
+
+        if len(self.actions) % 10 == 0:
+            """VISUALIZE UPDATE PROBS EVERY 10 ITERATIONS"""
+            self.visualize_nuclear_reactor(self.probabilities)
+            self.visualize_nuclear_reactor_3d(self.probabilities)
 
     def move_given_sequence(self, deactivating_path):
         """uses an input command sequence to run the game according to those actions"""
@@ -627,15 +737,144 @@ class Agent():
         # returns the list of commands in the command sequence
         return [command for command in command_sequence if command != ","]
 
+    # DEPRECATED FUNCTIONALILTY FOR A*
+
+    def a_star(self):
+
+        print("\n ------ INITIALIZE THE A STAR ALGORITHM -----\n")
+
+        def entropy(probabilities):
+            entropy = 0
+            for i in range(probabilities.shape[0]):
+                for j in range(probabilities.shape[1]):
+                    if probabilities[i,j] > 0:
+                        entropy += -np.log(probabilities[i,j]) * probabilities[i,j]
+            return entropy 
+            
+        starting_entropy = entropy(self.probabilities)
+
+        def h(next_probs):
+            #denominator = self.num_white_cells
+            #denominator = 2
+            #return entropy(next_probs) * self.get_num_nonzero_clusters(next_probs)
+
+            value = entropy(next_probs)
+            value2 = get_k_clusters_centroid_of_centroids(next_probs)
+            value3 = get_k(next_probs)
+            print("\n----------------------------\n")
+            print(f"\nTHE ENTROPY OF THE NEXT PROB STATE IS: {value}")
+            print(f"THE AVG CLUSTER DISTANCE OF THE NEXT PROB STATE IS: {value2}")
+            print(f"THE # OF CLUSTERS ARE: {value3}\n")
+            return entropy(next_probs) + get_k_clusters_centroid_of_centroids(next_probs) * get_k(next_probs)
+            
+        def g(prev_probs, next_probs):
+            return entropy(next_probs) - starting_entropy
+        
+        print(f"\nSTARTING THE A STAR ALGORITHM...")
+
+        # initialize the heap list and visited set
+        heap, visited = list(), set() 
+
+        # initialize heap with ( cost(s), ( s, seq(s) ) )
+        s0 = AStarTuple(0 + h(self.probabilities), self.probabilities)
+        heap.append( (s0, []) )
+
+        print(f"\nInitialized The Heap:")
+        print(heap)
+
+        # run the A* algorithm until termination 
+        while len(heap) > 0:
+
+            print("\n ------ POP OFF MIN ITEM FROM HEAP -----\n")
+
+            # retrieves the item of minimal cost 
+            curr_state, curr_seq = heapq.heappop(heap)
+
+            print(f"\nPopped off minimal cost item from heap!")
+            print(f"The current sequence is: {curr_seq}")
+            print(f"The probabilities are:")
+            print(curr_state.probabilities)
+
+            # self.visualize_nuclear_reactor(curr_state.probabilities)
+            # self.visualize_nuclear_reactor_3d(curr_state.probabilities)
+
+            # returns the sequence of moves if terminal state
+            if self.is_terminal_state(curr_state.probabilities):
+                print(f"\nWe reached a terminal state!")
+                self.actions = curr_seq 
+                return curr_seq  
+            
+            # mark the current state as visited 
+            visited.add(curr_state.hashableprobability)
+
+            # print(f"\n The current visited set is: {visited}")
+
+            print("\n ------ LOOKING AT TRANSITIONS NOW -----\n")
+
+            # iterate through every possible action possible 
+            for action in ["U", "D", "L", "R"]:
+
+                next_probs = self.transition(curr_state.probabilities, action)
+
+                # if we've already visited this state before continue 
+                if tuple(next_probs.flatten()) not in visited: 
+
+                    #print(f"\nIf we move with action {action}, we get the new proabilities:")
+                    #print(next_probs)
+
+
+                    #total_cost = round(heuristic(next_probs) + cost(curr_seq), 1)
+                    #next_seq = curr_seq + [action]
+
+                    #total_cost, next_seq= heuristic(next_probs) + cost(curr_state.probabilities, next_probs), curr_seq + [action]
+
+                    #total_cost, next_seq= curr_state.totalcost + heuristic(curr_state.probabilities, next_probs) , curr_seq + [action]
+
+                    #total_cost, next_seq= cost_entropy(curr_state.probabilities, next_probs) , curr_seq + [action]
+                    total_cost, next_seq= g(curr_state.probabilities, next_probs) + h(next_probs), curr_seq + [action]
+
+                    s1 = AStarTuple(total_cost, next_probs)
+
+                    if len(heap) < 1000:
+                        heapq.heappush(heap, (s1, next_seq))
+                    else: 
+                        heapq.heappushpop(heap, (s1, next_seq))
+
+                    print(f"\nWe are pushing this information to the heap...")
+                    print(f"The total cost: {total_cost}")
+                    print(f"The next sequence: {next_seq}")
+                   #print(f"The new probabilities:")
+                    #print(s1.probabilities)
+
+        return heap 
+
+################# DEPRECATED CLASS FOR A* #################
+
+class AStarTuple():
+    def __init__(self, totalcost, probabilities):
+        self.totalcost = totalcost 
+        self.probabilities = probabilities
+        self.hashableprobability = tuple(self.probabilities.flatten())
+    
+    def __eq__(self, other) -> bool:
+        return self.hashableprobability == other.hashableprobability
+    
+    def __lt__(self, other) -> bool:
+        return self.totalcost < other.totalcost 
+    
+    def __gt__(self, other) -> bool:
+        return self.totalcost > other.totalcost 
+
+
 if __name__ == "__main__":
 
     # INPUT THE NUCLEAR REACTOR PATH 
-    nuclear_reactor_path = "reactors/toyexample2.txt"
+    nuclear_reactor_path = "reactors/toyexample1.txt"
     
     # INITIALIZE THE AGENT
     agent = Agent(nuclear_reactor_path)
 
     # RUN THE AGENT ACCORDING TO THE MORL POLICY
     while not agent.is_terminal_state(agent.probabilities):
-        agent.move()
+        agent.move_morl_policy()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
