@@ -834,3 +834,5 @@ if __name__ == "__main__":
 
     #agent.move_deterministically(deactivating_path="sequences/sequence-toyexample3.txt")
     # agent = Agent()
+
+    print("Update")
