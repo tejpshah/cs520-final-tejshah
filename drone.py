@@ -252,9 +252,7 @@ def bfs(maze, start, end):
     # return the shortest path in reverse order
     return len(path[::-1])
 
-
 ################# INITIALIZES THE AGENT TO ACT IN THIS DEFINED MDP #################
-
 class Agent():
 
     def __init__(self, path ="reactors/Thor23-SA74-VERW-Schematic (Classified).txt"):
@@ -341,7 +339,7 @@ class Agent():
         return invalid_moves
 
     # OBJECTIVE FUNCTIONS FOR MULTI-OBJECTIVE RL
-    
+
     def calculate_entropy(self, probabilities):
         """
         this function calculates the entropy for all probabilities in matrix >0 
@@ -475,7 +473,7 @@ class Agent():
             next_state = self.transition(self.probabilities, command)
 
             # the reward at the current time step 
-            current_reward = compute_reward(self.probabilities, next_state)
+            current_reward = self.compute_reward(self.probabilities, next_state)
             
             print(f"The current reward is {current_reward}")
 
@@ -489,7 +487,7 @@ class Agent():
                 lookahead_next_state = self.transition(next_state, lookahead)
 
                 # computes the utility for this forward lookahead state and adds it to sum
-                expected_future_reward += compute_utility(lookahead_next_state)
+                expected_future_reward += self.compute_utility(lookahead_next_state)
 
             # we compute the sum of the expected future reward 
             total_reward = current_reward + BETA * expected_future_reward
@@ -865,7 +863,6 @@ class AStarTuple():
     def __gt__(self, other) -> bool:
         return self.totalcost > other.totalcost 
 
-
 if __name__ == "__main__":
 
     # INPUT THE NUCLEAR REACTOR PATH 
@@ -876,5 +873,5 @@ if __name__ == "__main__":
 
     # RUN THE AGENT ACCORDING TO THE MORL POLICY
     while not agent.is_terminal_state(agent.probabilities):
-        agent.move_morl_policy()
+        agent.move_morl_policy_verbose()
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
