@@ -1,4 +1,6 @@
+import random 
 import numpy as np 
+import matplotlib.pyplot as plt
 
 ################# HELPER FUNCTIONS FOR CLUSTERING ALGORITHMS #################
 
@@ -314,4 +316,252 @@ def compute_reward(old_probs, new_probs):
         return objective_i * objective_h * objective_f * objective_g
     else:
         return objective_l
+
+################# INITIALIZES THE AGENT TO ACT IN THIS DEFINED MDP #################
+
+class Agent():
+
+    def __init__(self, path ="reactors/Thor23-SA74-VERW-Schematic (Classified).txt"):
+
+        # this stores the path of the nuclear reactor 
+        self.path = path
+
+        # this stores the sequence of actions taken by the agent
+        self.actions = list() 
+
+        # this represents the nuclear reactor as a 2D matrix
+        self.reactor = self.init_nuclear_reactor_config()
+
+        # this represents probability of being at a cell as a matrix
+        self.probabilities = self.init_probability_matrix()
+
+        # this initializes the set of invalid moves for a configuration
+        self.invalid_moves = self.init_invalid_actions()
+
+        # creates a visited set
+        self.visited = {tuple(self.probabilities.flatten())}
+    
+    # FUNCTIONALITY TO RUN THE AGENT AND START TO MOVE THE AGENT FOR DIFFERENT POLICY
+    def move_morl_policy(self):
+        """uses the MORL approach to choose actions for the policy"""
+        
+        # stores the values taken for each action
+        qtable = dict() 
+
+        # the discount factor to discount future rewards and next constants
+        BETA = 0.90; NEXT_STATES = ["U", "D", "L", "R"]
+
+         # iterates through all possible next states
+        for command in NEXT_STATES:
+
+            print(f"\nThe command being executed is {command}")
+
+            # returns the next state probabilities after transitioning after a command 
+            next_state = self.transition(self.probabilities, command)
+
+            # the reward at the current time step 
+            current_reward = compute_reward(self.probabilities, next_state)
+            
+            print(f"The current reward is {current_reward}")
+
+            # returns the utility of transitioning to the next state 
+            expected_future_reward = 0 
+
+            # we predict the value one step into the future
+            for lookahead in NEXT_STATES:
+
+                # returns the looakahead_next_state probabilities after trainsitioning
+                lookahead_next_state = self.transition(next_state, lookahead)
+
+                # computes the utility for this forward lookahead state and adds it to sum
+                expected_future_reward += compute_utility(lookahead_next_state)
+
+            # we compute the sum of the expected future reward 
+            total_reward = current_reward + BETA * expected_future_reward
+
+            print(f"The total reward is {total_reward}\n")
+
+            # we hash the command and the assosciated total reward 
+            qtable[command] = total_reward
+
+            # if we have seen the state before, it's penalized by a factor of 3
+            if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
+
+        print(f"\nJust completed computation for the policy...")
+        print(f"The qtable from the curent state is {qtable}")
+
+        # after we have found all the qvalues for the actions, select the action with the min qvalue 
+        possible_actions = list()    
+        minimal_qvalue = min(qtable.values())
+        for action, qvalue in qtable.items():
+            if qvalue == minimal_qvalue: 
+                possible_actions.append(action)
+
+        action_taken = random.choice(possible_actions)
+        self.actions.append(action_taken)
+        self.probabilities = self.transition(self.probabilities, action_taken)
+        self.visited.add(tuple(self.probabilities.flatten()))
+   
+        print(f"Just decided to take the next following action: {action_taken}")
+        print(f"Now, my probabilities and state are updated as follows:")
+        print(f"{self.probabilities}")
+        print(f"I have taken {len(self.actions)} commands so far!")
+
+        self.visualize_nuclear_reactor(self.probabilities)
+        self.visualize_nuclear_reactor_3d(self.probabilities)
+
+    def move_given_sequence(self, deactivating_path):
+        """uses an input command sequence to run the game according to those actions"""
+        self.deactivating_path = deactivating_path
+        commands = self.load_deactivating_sequence()
+        print(f"You are using this command sequence: {commands}")
+        for action in commands:
+            self.visualize_nuclear_reactor(self.probabilities)
+            self.visualize_nuclear_reactor_3d(self.probabilities)
+            self.probabilities = self.transition(self.probabilities, action)
+
+    # FUNCTIONALITY TO ENABLE THE AGENT TO MOVE AND UPDATE PROBABILITIES BASED ON ACTION TAKEN
+
+    def transition(self, probabilities, action):
+        """
+        @returns next probability matrix based on the command executed
+        """
+        if action == "R":
+            return self.move_right(probabilities)
+        elif action == "L":
+            return self.move_left(probabilities)
+        elif action == "U":
+            return self.move_up(probabilities) 
+        elif action == "D":
+            return self.move_down(probabilities)
+
+    def move_down(self, probabilities):
+        """
+        this updates the probabilities matrix if the agent moves down. (i,j) -> (i+1,j)
+        """
+        p_down = np.zeros(probabilities.shape)
+        for i in range(0, self.reactor.shape[0]):
+            for j in range(0, self.reactor.shape[1]):
+                if (i+1, j) not in self.invalid_moves:
+                    p_down[i+1, j] += probabilities[i,j]
+                else: p_down[i, j] += probabilities[i,j]
+        return p_down 
+
+    def move_up(self, probabilities):
+        """
+        this updates the probabilities matrix if the agent moves down. (i,j) -> (i-1,j)
+        """
+        p_up = np.zeros(probabilities.shape)
+        for i in range(0, self.reactor.shape[0]):
+            for j in range(0, self.reactor.shape[1]):
+                if (i-1, j) not in self.invalid_moves:
+                    p_up[i-1, j] += probabilities[i,j]
+                else: p_up[i, j] += probabilities[i,j]
+        return p_up 
+    
+    def move_left(self, probabilities):
+        """
+        this updates the probabilities matrix if the agent moves down. (i,j) -> (i,j-1)
+        """
+        p_left = np.zeros(probabilities.shape)
+        for i in range(0, self.reactor.shape[0]):
+            for j in range(0, self.reactor.shape[1]):
+                if (i, j-1) not in self.invalid_moves:
+                    p_left[i, j-1] += probabilities[i,j]
+                else: p_left[i, j] += probabilities[i,j]
+        return p_left 
+    
+    def move_right(self, probabilities):
+        """
+        this updates the probabilities matrix if the agent moves down. (i,j) -> (i,j+1)
+        """
+        p_left = np.zeros(probabilities.shape)
+        for i in range(0, self.reactor.shape[0]):
+            for j in range(0, self.reactor.shape[1]):
+                if (i, j+1) not in self.invalid_moves:
+                    p_left[i, j+1] += probabilities[i,j]
+                else: p_left[i, j] += probabilities[i,j]
+        return p_left 
+
+    # DEBUGGING FUNCTIONS FOR PRINTING OUTPUT TO TERMINAL AND VISUALIZING GAME STATE AND OTHER UTILITIES
+
+    def is_terminal_state(self, probabilities):
+        """
+        ends the game if 1.0 is in any of the probabilities (i.e. we are 100% confident on localizing the drone)
+        """ 
+        for i in range(0, probabilities.shape[0]):
+            for j in range(0, probabilities.shape[1]):
+                value = probabilities[i,j]
+                if value > 0.999: 
+                    return True 
+        return False 
+
+    def get_localized_robot_location(self):
+        """
+        find the cell where there is a 100% probability of containing the robot. 
+        """
+        indices = np.where(self.probabilities == 1.0)
+        coordinate = (indices[0].item(), indices[1].item())
+        print(f"THE ROBOT IS 100% LOCALIZED TO BE AT {coordinate}")
+        return coordinate 
+
+    def visualize_nuclear_reactor(self, probabilities):
+        """
+        generates a visualization of the nuclear reactor configuration along with probs of being at a cell. 0 -> white, 1 -> black
+        """
+        # set the colormap and color limits 
+        plt.imshow(probabilities, cmap='magma', vmin=probabilities.min(), vmax=probabilities.max())
+
+        # show the color bar
+        plt.colorbar()
+
+        # removes the tick marks and labels
+        plt.gca().tick_params(which="both", length=0)
+        plt.gca().set_xticklabels([])
+        plt.gca().set_yticklabels([])
+
+        # sets the tick labels at center of each cell to be the values in each cell
+        for i in range(self.reactor.shape[0]):
+            for j in range(self.reactor.shape[1]):
+                if self.reactor[i,j] != 1:
+                    plt.text(j, i, round(probabilities[i,j], 3), ha="center", va="center", color="blue", fontsize=6)
+
+        # visualizes the nuclear reactor
+        plt.show()
+
+    def visualize_nuclear_reactor_3d(self, probabilities):
+        """
+        generates a 3D visualization of the nuclear reactor configuration with probs as the height above the surface.
+        """
+
+        # create a figure and 3D Axes
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        # create a 2D array of x and y values for the 3D plot
+        x, y = np.meshgrid(range(self.reactor.shape[1]), range(self.reactor.shape[0]))
+
+        # plot the surface using the probabilities as the z values
+        ax.plot_surface(x, y, probabilities, cmap='magma',  vmin=probabilities.min(), vmax=probabilities.max())
+
+        # show the plot
+        plt.show()
+
+    def load_deactivating_sequence(self):
+        """
+        this will load into an array the sequence of commands. 
+        """
+        # initialize the command sequence
+        command_sequence = list()
+
+        # opens the command sequence
+        with open(self.deactivating_path, 'r') as file:
+            commands = file.read()
+
+        # iterate through the contents of the file and append each character to the array
+        for move in commands:
+            command_sequence.append(move)
+        
+        # returns the list of commands in the command sequence
+        return [command for command in command_sequence if command != ","]
 
