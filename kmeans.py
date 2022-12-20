@@ -171,7 +171,8 @@ def get_com_kclusters(matrix):
         [(1.0, 0.0), (1.5, 7.0), (10.0, 5.0)]
     """
     # Get the list of weighted clusters
-    clusters = get_weighted_k_clusters(matrix)
+    #clusters = get_weighted_k_clusters(matrix)
+    clusters = get_k_clusters(matrix)
     
     # Initialize a list to store the center of mass for each cluster
     coms = []

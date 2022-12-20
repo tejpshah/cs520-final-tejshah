@@ -1,6 +1,7 @@
 import random 
 import heapq
 import numpy as np 
+import random 
 import matplotlib.pyplot as plt 
 from kmeans import avg_clustercom_to_clustercomcom, get_k
 
@@ -59,15 +60,19 @@ class Agent():
         """
         returns the utlity of a new state
         """
-        return self.entropy(new_probs)
+        return self.entropy(new_probs) * min(0.1, avg_clustercom_to_clustercomcom(new_probs))
 
     def information_gained(self, old_probs, new_probs):
         """
         returns the information gained from moving to a new state 
         """
-        return (self.entropy(new_probs) - self.entropy(old_probs))
+        #print(f"THE ACTION HAS AN AVERAGE DISTANCE TO COM OF {avg_clustercom_to_clustercomcom(new_probs)}")
+        
+        information_gain = self.entropy(new_probs) - self.entropy(old_probs)
+        if information_gain == 0: return avg_clustercom_to_clustercomcom(new_probs)
+        else: return information_gain
 
-    def move(self):
+    def move_nonverbose(self):
         
         # stores the values taken for each action
         qtable = dict() 
@@ -77,6 +82,7 @@ class Agent():
 
         # iterates through all possible next states
         for command in NEXT_STATES:
+
 
             # returns the next state probabilities after transitioning after a command 
             next_state = self.transition(self.probabilities, command)
@@ -91,7 +97,7 @@ class Agent():
             for lookahead in NEXT_STATES:
 
                 # returns the looakahead_next_state probabilities after trainsitioning
-                lookahead_next_state = self.transition(command, lookahead)
+                lookahead_next_state = self.transition(next_state, lookahead)
 
                 # computes the utility for this forward lookahead state and adds it to sum
                 expected_future_reward += self.utility(lookahead_next_state)
@@ -103,12 +109,108 @@ class Agent():
             qtable[command] = total_reward
 
         # after we have found all the qvalues for the actions, select the action with the min qvalue 
+        possible_actions = list()    
         minimal_qvalue = min(qtable.values())
         for action, qvalue in qtable.items():
             if qvalue == minimal_qvalue: 
-                self.actions.append(action)
-                self.probabilities = self.transition(self.probabilities, action)
+                possible_actions.append(action)
 
+        action_taken = random.choice(possible_actions)
+        self.actions.append(action_taken)
+        self.probabilities = self.transition(self.probabilities, action_taken)
+
+        print(f"I have taken {len(self.actions)} commands so far!")
+
+        if len(self.actions) % 10 == 0:
+            self.visualize_nuclear_reactor(self.probabilities)
+            self.visualize_nuclear_reactor_3d(self.probabilities)
+        
+    def move(self):
+        
+        # stores the values taken for each action
+        qtable = dict() 
+
+        # the discount factor to discount future rewards and next constants
+        BETA = 0.90; NEXT_STATES = ["U", "D", "L", "R"]
+
+        # iterates through all possible next states
+        for command in NEXT_STATES:
+
+            print(f"\nThe command being executed is {command}")
+
+            # returns the next state probabilities after transitioning after a command 
+            next_state = self.transition(self.probabilities, command)
+
+            # the reward at the current time step 
+            current_reward = self.information_gained(self.probabilities, next_state)
+            
+            
+            print(f"The current reward is {current_reward}")
+
+
+            # returns the utility of transitioning to the next state 
+            expected_future_reward = 0 
+
+            # we predict the value one step into the future
+            for lookahead in NEXT_STATES:
+
+                # returns the looakahead_next_state probabilities after trainsitioning
+                lookahead_next_state = self.transition(next_state, lookahead)
+
+                # computes the utility for this forward lookahead state and adds it to sum
+                expected_future_reward += self.utility(lookahead_next_state)
+
+            # we compute the sum of the expected future reward 
+            total_reward = current_reward + BETA * expected_future_reward
+
+            print(f"The total reward is {total_reward}\n")
+
+            # we hash the command and the assosciated total reward 
+            qtable[command] = total_reward
+
+        # penalize values that were last up to be to have down be twice unlikely, same things with right_left
+
+        """
+        if len(self.actions) > 0 and self.actions[-1] == "U":
+            qtable["D"] *= 2 
+        elif len(self.actions) > 0 and self.actions[-1] == "D":
+            qtable["U"] *= 2 
+        elif len(self.actions) > 0 and self.actions[-1] == "L":
+            qtable["R"] *= 2 
+        elif len(self.actions) > 0 and self.actions[-1] == "R":
+            qtable["L"] *= 2 
+        """
+
+        print(f"\nJust completed computation for the policy...")
+        print(f"The qtable from the curent state is {qtable}")
+
+        # after we have found all the qvalues for the actions, select the action with the min qvalue 
+        possible_actions = list()    
+        minimal_qvalue = min(qtable.values())
+        for action, qvalue in qtable.items():
+            if qvalue == minimal_qvalue: 
+                possible_actions.append(action)
+
+        action_taken = random.choice(possible_actions)
+        self.actions.append(action_taken)
+        self.probabilities = self.transition(self.probabilities, action_taken)
+   
+        print(f"Just decided to take the next following action: {action_taken}")
+        print(f"Now, my probabilities and state are updated as follows:")
+        print(f"{self.probabilities}")
+        print(f"I have taken {len(self.actions)} commands so far!")
+
+        self.visualize_nuclear_reactor(self.probabilities)
+        self.visualize_nuclear_reactor_3d(self.probabilities)
+
+    def move_deterministically(self, deactivating_path):
+        self.deactivating_path = deactivating_path
+        commands = self.load_deactivating_sequence()
+        print(commands)
+        for action in commands:
+            self.visualize_nuclear_reactor(self.probabilities)
+            self.visualize_nuclear_reactor_3d(self.probabilities)
+            self.probabilities = self.transition(self.probabilities, action)
 
     def a_star(self):
 
@@ -528,9 +630,12 @@ class Agent():
 if __name__ == "__main__":
     agent = Agent(path="reactors/toyexample3.txt")
     #agent = Agent()
-    agent.a_star()
-    print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
+    #agent.a_star()
+
+    #while not agent.is_terminal_state(agent.probabilities):
+        #agent.move()
+    #print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
 
     #agent = Agent() 
-    # agent.move_deterministically(deactivating_path="sequences/sequence-toyexample2.txt")
+    agent.move_deterministically(deactivating_path="sequences/sequence-toyexample3.txt")
     # agent = Agent()
