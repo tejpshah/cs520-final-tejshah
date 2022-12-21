@@ -1,6 +1,8 @@
+import math 
 import random 
 import heapq
 import numpy as np 
+from collections import deque 
 import matplotlib.pyplot as plt
 
 ################# HELPER FUNCTIONS FOR CLUSTERING ALGORITHMS #################
@@ -274,6 +276,9 @@ class Agent():
 
         # creates a visited set
         self.visited = {tuple(self.probabilities.flatten())}
+
+        # stores a deque of the last 5 entropies 
+        self.history = deque() 
     
     # INITIALIZATION FUNCTIONS FOR NUCLEAR REACTOR, PROBABILITIES, & INVALID ACTIONS
     
@@ -429,6 +434,18 @@ class Agent():
                     max_distance = d
         return max_distance
 
+    def calculate_standard_deviation(self, numbers):
+        # Calculate the mean of the numbers
+        mean = sum(numbers) / len(numbers)
+
+        # Calculate the variance
+        variance = sum([(x - mean) ** 2 for x in numbers]) / len(numbers)
+
+        # Calculate the standard deviation
+        standard_deviation = math.sqrt(variance)
+
+        return standard_deviation
+
     def compute_utility(self, new_probs):
         """this will compute the utility for a particular state"""
         objective_h = self.calculate_entropy(new_probs)
@@ -438,10 +455,9 @@ class Agent():
 
     def compute_reward(self, old_probs, new_probs):
         """this will compute the reward for a particular state"""
+
         objective_i = self.calculate_information_gain(old_probs, new_probs)
         objective_h = self.calculate_entropy(new_probs)
-        objective_f = min(0.5, self.get_avg_pairwise_distance_cluster_centroids(new_probs))
-        objective_g = min(0.5, self.get_max_dist_from_kth_cluster_to_centroid_of_centroids(new_probs))
         objective_l = self.get_two_farthest_cluster_distances(new_probs)
         k_clusters = get_k(new_probs)
 
@@ -502,6 +518,10 @@ class Agent():
             # if we have seen the state before, it's penalized by a factor of 3
             if tuple(next_state.flatten()) in self.visited: qtable[command] *= 3
 
+        # add the current entropy to history 
+        self.history.append(self.calculate_entropy(self.probabilities))
+        if len(self.history) < 5: self.history.popleft()
+
         print(f"\nJust completed computation for the policy...")
         print(f"The qtable from the curent state is {qtable}")
 
@@ -533,6 +553,10 @@ class Agent():
 
         # the discount factor to discount future rewards and next constants
         BETA = 0.90; NEXT_STATES = ["U", "D", "L", "R"]
+
+        # add the current entropy to history 
+        self.history.append(self.calculate_entropy(self.probabilities))
+        if len(self.history) < 5: self.history.popleft()
 
          # iterates through all possible next states
         for command in NEXT_STATES:
@@ -581,9 +605,10 @@ class Agent():
         print(f"Action Taken: {action_taken}\tSteps Taken:{len(self.actions)}")
 
         if len(self.actions) % 10 == 0:
-            """VISUALIZE UPDATE PROBS EVERY 10 ITERATIONS"""
+            """VISUALIZE UPDATE PROBS EVERY 5 ITERATIONS"""
             self.visualize_nuclear_reactor(self.probabilities)
             self.visualize_nuclear_reactor_3d(self.probabilities)
+            print(f"SEQUENCE COMMAND: {self.actions}")
 
     def move_given_sequence(self, deactivating_path):
         """uses an input command sequence to run the game according to those actions"""
@@ -767,7 +792,7 @@ class Agent():
             print(f"\nTHE ENTROPY OF THE NEXT PROB STATE IS: {value}")
             print(f"THE AVG CLUSTER DISTANCE OF THE NEXT PROB STATE IS: {value2}")
             print(f"THE # OF CLUSTERS ARE: {value3}\n")
-            return entropy(next_probs) + get_k_clusters_centroid_of_centroids(next_probs) * get_k(next_probs)
+            return entropy(next_probs) * get_k(next_probs)
             
         def g(prev_probs, next_probs):
             return entropy(next_probs) - starting_entropy
@@ -870,13 +895,18 @@ class AStarTuple():
 if __name__ == "__main__":
 
     # INPUT THE NUCLEAR REACTOR PATH 
-    nuclear_reactor_path = "reactors/toyexample3.txt"
+    nuclear_reactor_path = "reactors/toyexample.txt"
     
     # INITIALIZE THE AGENT
     agent = Agent(nuclear_reactor_path)
+    # agent = Agent()
 
     # RUN THE AGENT ACCORDING TO THE MORL POLICY
     while not agent.is_terminal_state(agent.probabilities):
+        agent.visualize_nuclear_reactor(agent.probabilities)
         agent.move_morl_policy_verbose()
-
+        #agent.move_morl_policy()
+        #agent.move_given_sequence("sequences/sequence-reactor.txt")
+    
+    print(f"{agent.actions}")
     print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
