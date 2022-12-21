@@ -894,19 +894,25 @@ class AStarTuple():
 
 if __name__ == "__main__":
 
-    # INPUT THE NUCLEAR REACTOR PATH 
+    # INPUT THE NUCLEAR REACTOR PATH & SEQ COMMAND PATH
     nuclear_reactor_path = "reactors/toyexample.txt"
+    sequence_command_path = "sequences/sequence-toy.txt"
     
     # INITIALIZE THE AGENT
     agent = Agent(nuclear_reactor_path)
-    # agent = Agent()
 
     # RUN THE AGENT ACCORDING TO THE MORL POLICY
     while not agent.is_terminal_state(agent.probabilities):
-        agent.visualize_nuclear_reactor(agent.probabilities)
+
+        ###### UNCOMMENT OUT WHICHEVER VERSION OF THE MOVE THAT YOU DO NOT WANT TO DO. 1 AT A TIME ######
+
+        # verbose move of morl that shows probability plots taken at each step and other details
         agent.move_morl_policy_verbose()
-        #agent.move_morl_policy()
-        #agent.move_given_sequence("sequences/sequence-reactor.txt")
+
+        # verbose move of morl that shows probability plots after every 10 steps
+        # agent.move_morl_policy()
+
+        # moves only according to the sequence of commands given in a text file 
+        # agent.move_given_sequence(sequence_command_path)
     
-    print(f"{agent.actions}")
-    print(f"The optimal action sequence is of length {len(agent.actions)} is {agent.actions}!")
+    print(f"The optimal action sequence is of length {len(agent.actions)} and is {agent.actions}!")
