@@ -257,7 +257,7 @@ def bfs(maze, start, end):
 ################# INITIALIZES THE AGENT TO ACT IN THIS DEFINED MDP #################
 class Agent():
 
-    def __init__(self, path ="reactors/Thor23-SA74-VERW-Schematic (Classified).txt"):
+    def __init__(self, path ="reactors/reactor.txt"):
 
         # this stores the path of the nuclear reactor 
         self.path = path
