@@ -6,7 +6,7 @@ Question 1.1, 1.2, & 1.3 deals with localization. Suppose that you have a robot 
 
 # The Best Canvas Announcement You Will Ever Read
 
-# "To Clarify My Previous Announcement"
+## "To Clarify My Previous Announcement"
 "both of those were outputs from ChatGPT.
 
 I think they're interesting to consider, for two reasons:
